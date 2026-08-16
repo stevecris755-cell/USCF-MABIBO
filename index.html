@@ -304,6 +304,17 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
 .region-row .region-bar{height:100%; background:linear-gradient(90deg, var(--gold), var(--sage)); border-radius:6px;}
 .region-row .region-count{width:34px; text-align:right; color:var(--muted); font-family:'IBM Plex Mono'; font-size:11px;}
 
+/* ---------- About page ---------- */
+.about-block{border:1px solid var(--line); border-radius:14px; padding:22px 22px; background:var(--bg-elev); margin-bottom:16px;}
+.about-block h4{margin:0 0 10px; font-size:13px; text-transform:uppercase; letter-spacing:0.05em; color:var(--gold); font-family:'IBM Plex Mono'; font-weight:500;}
+.about-block p{color:var(--cream); font-size:14px; line-height:1.65; margin:0 0 8px;}
+.about-block p:last-child{margin-bottom:0;}
+.about-verse{font-family:'Fraunces'; font-style:italic; color:var(--gold); font-size:15.5px; line-height:1.6;}
+.about-pillars{display:flex; flex-direction:column; gap:14px; margin-top:16px;}
+.about-pillar{border-left:2px solid var(--gold); padding-left:14px;}
+.about-pillar b{display:block; color:var(--sage); font-size:13.5px; margin-bottom:4px; font-family:'IBM Plex Mono'; font-weight:600;}
+.about-pillar p{font-size:13px; color:var(--muted); margin:0;}
+
 /* ---------- Settings page ---------- */
 .settings-block{border:1px solid var(--line); border-radius:14px; padding:18px 20px; background:var(--bg-elev); margin-bottom:16px;}
 .settings-block h4{margin:0 0 12px; font-size:13px; text-transform:uppercase; letter-spacing:0.05em; color:var(--gold); font-family:'IBM Plex Mono'; font-weight:500;}
@@ -461,6 +472,53 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
           <h4>Next Event</h4>
           <div id="home-tukio"></div>
         </div>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section class="page" id="page-about">
+      <div class="page-head">
+        <div class="eyebrow">Our Story</div>
+        <h2>About USCF Mabibo Associates</h2>
+        <p>Who we are, and what "Social Welfare" means for this family.</p>
+      </div>
+
+      <div class="about-block">
+        <h4>Who We Are</h4>
+        <p>USCF Mabibo Associates is a fellowship of alumni who once walked together as members of the University of Dar es Salaam Christian Fellowship (USCF) at Mabibo. Though we have since graduated and scattered across different cities, careers and seasons of life, we remain one family — bound not by proximity, but by the faith, friendships and memories we built together.</p>
+      </div>
+
+      <div class="about-block">
+        <h4>What is "Social Welfare"?</h4>
+        <p>Social Welfare simply means the wellbeing of every member of this family — practically, emotionally, socially and spiritually. It is the commitment we make to look out for one another even after campus life ends. The Social Welfare Committee exists to carry out this commitment in five practical ways:</p>
+        <div class="about-pillars">
+          <div class="about-pillar">
+            <b>1. Financial Support</b>
+            <p>We contribute together so that no member walks through an emergency, illness, loss or major life event alone. Every contribution recorded in this app builds a fund we can lean on together.</p>
+          </div>
+          <div class="about-pillar">
+            <b>2. Emotional & Spiritual Care</b>
+            <p>We show up for each other — in grief and in joy, at weddings, births, hospital visits and hard seasons. Testimonies shared in "What I've Learned" remind us we are not walking alone.</p>
+          </div>
+          <div class="about-pillar">
+            <b>3. Staying Connected</b>
+            <p>Distance and busy schedules can quietly pull people apart. Announcements, events and this member directory exist to keep us in touch, no matter which city or country we now call home.</p>
+          </div>
+          <div class="about-pillar">
+            <b>4. Growing Together</b>
+            <p>We share skills, opportunities, mentorship and career advice with one another — because the same community that shaped us in faith can also help us grow professionally.</p>
+          </div>
+          <div class="about-pillar">
+            <b>5. Transparency & Trust</b>
+            <p>Every contribution, event and decision is kept visible to all members. Good stewardship of what we build together is itself an act of love and respect for this family.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="about-block">
+        <h4>Our Foundation</h4>
+        <p class="about-verse">"Let us not neglect our meeting together, as some people do, but encourage one another." — Hebrews 10:25</p>
+        <p>Everything we do — the giving, the gathering, the checking-in — flows from the same faith that first brought us together at Mabibo. This app is simply a tool to help us live that out more faithfully, wherever life has taken us.</p>
       </div>
     </section>
 
@@ -723,6 +781,7 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
 <script>
 const TABS = [
   {id:'home', label:'Home', icon:'<circle cx="9" cy="9" r="7"/><circle cx="9" cy="9" r="2.5" fill="currentColor" stroke="none"/>'},
+  {id:'about', label:'About Us', icon:'<circle cx="9" cy="9" r="7"/><path d="M9 8.2v4M9 5.8h.01"/>'},
   {id:'matangazo', label:'Announcements', icon:'<path d="M3 8h4l6-4v10l-6-4H3z"/><path d="M13 6.5a3 3 0 0 1 0 5"/>'},
   {id:'matukio', label:'Events', icon:'<rect x="2.5" y="4" width="13" height="11" rx="2"/><path d="M2.5 7.5h13M6 2v4M12 2v4"/>'},
   {id:'kalenda', label:'Calendar', icon:'<rect x="2.5" y="3.5" width="13" height="12" rx="2"/><path d="M2.5 7h13M6 2v3M12 2v3"/><circle cx="6.3" cy="10.3" r=".9" fill="currentColor" stroke="none"/><circle cx="9" cy="10.3" r=".9" fill="currentColor" stroke="none"/><circle cx="11.7" cy="10.3" r=".9" fill="currentColor" stroke="none"/>'},
