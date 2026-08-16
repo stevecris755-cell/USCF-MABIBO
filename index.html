@@ -171,6 +171,7 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
   background:var(--sage); color:#0f1a12; font-weight:600; white-space:nowrap;
 }
 .del-btn{background:none; border:none; color:var(--muted); font-size:12px; padding:4px 6px;}
+.reset-btn{background:none; border:1px solid var(--gold); color:var(--gold); font-size:11.5px; padding:5px 10px; border-radius:7px;}
 .del-btn:hover{color:var(--warn);}
 .empty-state{
   text-align:center; padding:50px 20px; color:var(--muted); border:1px dashed var(--line); border-radius:14px;
@@ -1101,7 +1102,10 @@ function renderMatangazo(){
     <div class="card">
       <div class="top-row">
         <div><h4>${esc(m.title)}</h4><div class="meta">${esc(m.author)} · ${fmtDate(m.date)}</div></div>
-        <button class="del-btn" onclick="removeItem('matangazo','${m.id}')">Delete</button>
+        <div class="admin-only-btn show-inline" style="${isAdmin?'display:flex; gap:8px;':'display:none'}">
+          <button class="reset-btn" onclick="openModal('matangazo','${m.id}')">Edit</button>
+          <button class="del-btn" onclick="removeItem('matangazo','${m.id}')">Delete</button>
+        </div>
       </div>
       <p class="body-text">${esc(m.body)}</p>
     </div>`).join('');
@@ -1120,7 +1124,10 @@ function renderMatukio(){
         <div><h4>${esc(e.title)}</h4><div class="meta">${fmtDate(e.date)}${e.location? ' · '+esc(e.location):''}</div></div>
         <div style="display:flex; gap:8px; align-items:center;">
           ${past? '<span class="tag" style="background:var(--muted); color:#111;">Past</span>' : '<span class="tag">Upcoming</span>'}
-          <button class="del-btn" onclick="removeItem('matukio','${e.id}')">Delete</button>
+          <div class="admin-only-btn show-inline" style="${isAdmin?'display:flex; gap:8px;':'display:none'}">
+            <button class="reset-btn" onclick="openModal('matukio','${e.id}')">Edit</button>
+            <button class="del-btn" onclick="removeItem('matukio','${e.id}')">Delete</button>
+          </div>
         </div>
       </div>
       ${e.description? `<p class="body-text">${esc(e.description)}</p>` : ''}
@@ -1147,7 +1154,10 @@ function renderWanachama(){
           ${avatar}
           <div><h4>${esc(w.name)}</h4><div class="meta">${w.mahali? esc(w.mahali) : 'Location not provided'}${w.phone? ' · '+esc(w.phone) : ''}</div></div>
         </div>
-        <button class="del-btn admin-only-btn show-inline" onclick="removeItem('wanachama','${w.id}')" style="${isAdmin?'':'display:none'}">Delete</button>
+        <div class="admin-only-btn show-inline" style="${isAdmin?'display:flex; gap:8px;':'display:none'}">
+          <button class="reset-btn" onclick="openResetPasswordModal('${w.id}')">Reset Password</button>
+          <button class="del-btn" onclick="removeItem('wanachama','${w.id}')">Delete</button>
+        </div>
       </div>
       <div class="profile-grid">
         ${(w.mwakaAnza||w.mwakaMaliza)? `<div class="profile-field"><b>University Years</b>${esc(w.mwakaAnza||'?')} – ${esc(w.mwakaMaliza||'?')}</div>`:''}
@@ -1499,6 +1509,33 @@ function renderAdminAnalytics(){
   }
 }
 
+function openResetPasswordModal(id){
+  if(!isAdmin) return;
+  const w = state.wanachama.find(x=>x.id===id);
+  if(!w) return;
+  const modal = document.getElementById('modal-content');
+  modal.innerHTML = `
+    <h3>Reset Password</h3>
+    <p class="settings-note" style="margin-bottom:14px;">Setting a new password for <b>${esc(w.name)}</b>. Share it with them privately.</p>
+    <div class="field"><label>New password</label><input id="rp-new-pass" type="text" minlength="4"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="submitPasswordReset('${id}')">Set Password</button>
+    </div>`;
+  document.getElementById('overlay').classList.add('active');
+}
+
+async function submitPasswordReset(id){
+  const w = state.wanachama.find(x=>x.id===id);
+  if(!w) return;
+  const next = document.getElementById('rp-new-pass').value;
+  if(!next || next.length < 4){ toast('Password must be at least 4 characters'); return; }
+  w.password = await hashPassword(next);
+  closeModal();
+  await saveList('wanachama');
+  toast('Password reset for '+w.name);
+}
+
 async function changeMyPassword(){
   if(isAdmin || !currentMemberId){ toast('Admin accounts don\'t have a member password here'); return; }
   const w = state.wanachama.find(x=>x.id===currentMemberId);
@@ -1674,27 +1711,29 @@ const FORMS = {
   }
 };
 
-function openModal(section){
+function openModal(section, editId){
   const adminOnlyOpen = ['matangazo','matukio','michango','wanachama','wajumbe'];
   if(adminOnlyOpen.includes(section) && !isAdmin){ toast('Only an Admin can do this'); return; }
   const cfg = FORMS[section];
+  const existing = editId ? state[section].find(x=>x.id===editId) : null;
   const modal = document.getElementById('modal-content');
   modal.innerHTML = `
-    <h3>${cfg.title}</h3>
+    <h3>${existing? 'Edit '+cfg.title.replace(/^(New|Add|Record)\s/,'') : cfg.title}</h3>
     <div id="modal-fields"></div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn-primary" onclick="submitForm('${section}')">Save</button>
+      <button class="btn-primary" onclick="submitForm('${section}'${existing? ",'"+editId+"'" : ''})">Save</button>
     </div>`;
   const fieldsWrap = document.getElementById('modal-fields');
   cfg.fields.forEach(f=>{
     const div = document.createElement('div');
     div.className='field';
     const today = new Date().toISOString().slice(0,10);
+    const existingVal = existing ? (existing[f.key] ?? '') : '';
     div.innerHTML = `<label>${f.label}</label>` + (
       f.type==='textarea'
-        ? `<textarea id="f-${f.key}"></textarea>`
-        : `<input id="f-${f.key}" type="${f.type}" ${f.type==='date' ? 'value="'+today+'"' : ''}>`
+        ? `<textarea id="f-${f.key}">${esc(existingVal)}</textarea>`
+        : `<input id="f-${f.key}" type="${f.type}" value="${esc(existingVal) || (f.type==='date' && !existing ? today : '')}">`
     );
     fieldsWrap.appendChild(div);
   });
@@ -1704,25 +1743,28 @@ function closeModal(){ document.getElementById('overlay').classList.remove('acti
 
 const ADMIN_ONLY_SECTIONS = ['matangazo','matukio','michango','wanachama','wajumbe'];
 
-async function submitForm(section){
+async function submitForm(section, editId){
   if(ADMIN_ONLY_SECTIONS.includes(section) && !isAdmin){ toast('Only an Admin can do this'); return; }
   const cfg = FORMS[section];
-  const obj = { id: cryptoId() };
+  const existing = editId ? state[section].find(x=>x.id===editId) : null;
+  const obj = existing ? existing : { id: cryptoId() };
   for(const f of cfg.fields){
     const el = document.getElementById('f-'+f.key);
     const val = el.value.trim();
     if(f.required && !val){ toast('Fill in all required fields'); return; }
     obj[f.key] = val;
   }
-  if(section==='matangazo'){ obj.author = currentUser; obj.date = new Date().toISOString(); }
-  if(section==='picha'){ obj.addedBy = currentUser; obj.date = new Date().toISOString(); }
-  if(section==='mafunzo'){ obj.author = currentUser; obj.date = new Date().toISOString(); }
-  if(section==='wanachama'){ obj.status = 'approved'; obj.password = await hashPassword(obj.password); }
-  state[section].push(obj);
+  if(!existing){
+    if(section==='matangazo'){ obj.author = currentUser; obj.date = new Date().toISOString(); }
+    if(section==='picha'){ obj.addedBy = currentUser; obj.date = new Date().toISOString(); }
+    if(section==='mafunzo'){ obj.author = currentUser; obj.date = new Date().toISOString(); }
+    if(section==='wanachama'){ obj.status = 'approved'; obj.password = await hashPassword(obj.password); }
+    state[section].push(obj);
+  }
   closeModal();
   renderAll();
   await saveList(section);
-  toast('Saved');
+  toast(existing ? 'Updated' : 'Saved');
 }
 
 document.getElementById('overlay').addEventListener('click', (e)=>{ if(e.target.id==='overlay') closeModal(); });
