@@ -270,6 +270,54 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
 }
 .toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
 
+/* ---------- Welcome splash ---------- */
+.welcome-splash{
+  position:fixed; inset:0; background:rgba(8,11,22,0.88); backdrop-filter:blur(6px);
+  display:none; align-items:center; justify-content:center; z-index:100; padding:20px;
+}
+.welcome-splash.active{display:flex;}
+.welcome-card{
+  width:100%; max-width:420px; background:var(--bg-elev); border:1px solid var(--line); border-radius:20px;
+  overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.5); animation:welcomeIn .35s ease;
+}
+@keyframes welcomeIn{ from{opacity:0; transform:translateY(14px) scale(0.97);} to{opacity:1; transform:translateY(0) scale(1);} }
+.welcome-card img{ width:100%; height:220px; object-fit:cover; display:block; }
+.welcome-card-body{ padding:24px 26px 28px; text-align:center; }
+.welcome-card-body h2{ margin:2px 0 16px; font-size:24px; }
+.welcome-verse{ font-family:'Fraunces'; font-style:italic; color:var(--gold); font-size:15px; line-height:1.5; margin:0 0 12px; }
+.welcome-note{ color:var(--muted); font-size:13px; line-height:1.5; margin:0 0 20px; }
+.welcome-card-body .btn-primary{ width:100%; }
+
+/* ---------- Analytics dashboard ---------- */
+.analytics-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:26px;}
+@media (min-width:640px){ .analytics-grid{grid-template-columns:repeat(3,1fr);} }
+.analytics-card{border:1px solid var(--line); border-radius:14px; padding:16px 16px; background:var(--bg-elev);}
+.analytics-card b{display:block; font-size:24px; font-family:'Fraunces'; font-weight:600; color:var(--cream);}
+.analytics-card span{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; font-family:'IBM Plex Mono';}
+.analytics-card.accent b{color:var(--gold);}
+.section-label{font-family:'IBM Plex Mono'; font-size:13px; color:var(--gold); text-transform:uppercase; letter-spacing:0.05em; margin:0 0 12px;}
+
+.region-chart{display:flex; flex-direction:column; gap:10px;}
+.region-row{display:flex; align-items:center; gap:10px; font-size:12.5px;}
+.region-row .region-name{width:110px; flex-shrink:0; color:var(--cream); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.region-row .region-bar-wrap{flex:1; background:var(--bg); border-radius:6px; height:10px; overflow:hidden;}
+.region-row .region-bar{height:100%; background:linear-gradient(90deg, var(--gold), var(--sage)); border-radius:6px;}
+.region-row .region-count{width:34px; text-align:right; color:var(--muted); font-family:'IBM Plex Mono'; font-size:11px;}
+
+/* ---------- Settings page ---------- */
+.settings-block{border:1px solid var(--line); border-radius:14px; padding:18px 20px; background:var(--bg-elev); margin-bottom:16px;}
+.settings-block h4{margin:0 0 12px; font-size:13px; text-transform:uppercase; letter-spacing:0.05em; color:var(--gold); font-family:'IBM Plex Mono'; font-weight:500;}
+.settings-note{color:var(--muted); font-size:12.5px; line-height:1.6; margin:0;}
+
+/* ---------- Profile photo ---------- */
+.avatar-photo{width:44px; height:44px; border-radius:50%; object-fit:cover; flex-shrink:0; border:1px solid var(--line);}
+.profile-photo-row{display:flex; align-items:center; gap:12px; margin-bottom:14px;}
+.profile-photo-row .avatar-photo{width:64px; height:64px;}
+.profile-photo-row .avatar-placeholder{width:64px; height:64px; border-radius:50%; background:var(--gold-soft); color:var(--gold); display:flex; align-items:center; justify-content:center; font-family:'Fraunces'; font-size:22px; font-weight:600; flex-shrink:0;}
+.card .top-row{align-items:flex-start;}
+.card .avatar-photo{margin-right:2px;}
+.member-name-row{display:flex; align-items:center; gap:10px;}
+
 /* ---------- Login tabs ---------- */
 .login-tabs{display:flex; gap:6px; margin-bottom:18px; background:var(--bg); border-radius:10px; padding:4px; border:1px solid var(--line);}
 .login-tab-btn{flex:1; padding:8px 6px; border:none; background:transparent; color:var(--muted); font-size:12.5px; font-weight:600; border-radius:8px; font-family:inherit;}
@@ -528,10 +576,42 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
       <div class="page-head">
         <div class="eyebrow">Management</div>
         <h2>Admin Dashboard</h2>
-        <p>Approve new members and manage the committee.</p>
+        <p>Community insights, approvals, and committee management.</p>
       </div>
-      <h4 style="font-family:'IBM Plex Mono'; font-size:13px; color:var(--gold); text-transform:uppercase; letter-spacing:0.05em; margin:0 0 12px;">Pending Join Requests</h4>
+
+      <div class="analytics-grid" id="analytics-grid"></div>
+
+      <h4 class="section-label">Members by Region</h4>
+      <div class="region-chart" id="region-chart" style="margin-bottom:30px;"></div>
+
+      <h4 class="section-label">Pending Join Requests</h4>
       <div class="card-list" id="list-pending" style="margin-bottom:30px;"></div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="page" id="page-settings">
+      <div class="page-head">
+        <div class="eyebrow">Account</div>
+        <h2>Settings</h2>
+        <p>Manage your account and app preferences.</p>
+      </div>
+
+      <div class="settings-block" id="settings-member-block">
+        <h4>Change My Password</h4>
+        <div class="field"><label>Current password</label><input id="set-current-pass" type="password"></div>
+        <div class="field"><label>New password</label><input id="set-new-pass" type="password"></div>
+        <button class="btn-primary" onclick="changeMyPassword()">Update Password</button>
+      </div>
+
+      <div class="settings-block" id="settings-admin-block" style="display:none;">
+        <h4>Admin Notes</h4>
+        <p class="settings-note">The Admin master password is stored directly in this app's code (search for <b>ADMIN_PASSWORD</b> in the file) and can only be changed by editing and redeploying the file. Individual member passwords can be reset by approving a fresh join request or asking the member to use "Change My Password" once signed in.</p>
+      </div>
+
+      <div class="settings-block">
+        <h4>About this App</h4>
+        <p class="settings-note">USCF Mabibo Associates Social Welfare — a shared home for announcements, events, members, contributions and fellowship. Data is stored securely in the cloud and shared with all approved members.</p>
+      </div>
     </section>
 
     <!-- CHAT -->
@@ -556,6 +636,20 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- WELCOME SPLASH -->
+<div class="welcome-splash" id="welcome-splash">
+  <div class="welcome-card">
+    <img id="welcome-splash-photo" src="" alt="USCF Mabibo Associates">
+    <div class="welcome-card-body">
+      <div class="eyebrow">Welcome</div>
+      <h2 id="welcome-splash-name">—</h2>
+      <p class="welcome-verse" id="welcome-splash-verse"></p>
+      <p class="welcome-note" id="welcome-splash-note"></p>
+      <button class="btn-primary" onclick="dismissWelcomeSplash()">Continue</button>
+    </div>
+  </div>
+</div>
 
 <!-- ===================================================================
      FIREBASE SETUP — Steve: fuata maelekezo yaliyokupewa ili kupata
@@ -639,6 +733,7 @@ const TABS = [
   {id:'picha', label:'Photos', icon:'<rect x="2.5" y="3.5" width="13" height="11" rx="2"/><circle cx="6" cy="7.5" r="1.4"/><path d="M15 12l-3.5-3.5-3 3-2-2L3 13"/>'},
   {id:'michango', label:'Contributions', icon:'<circle cx="9" cy="9" r="7"/><path d="M9 5.5v7M11.5 7c0-1-1-1.7-2.5-1.7S6.5 6 6.5 7s.8 1.4 2.5 1.7 2.5.7 2.5 1.8-1 1.8-2.5 1.8S6 12 6 11"/>'},
   {id:'majadiliano', label:'Discussion', icon:'<path d="M3 4h12v8H7l-4 3V4z"/>'},
+  {id:'settings', label:'Settings', icon:'<circle cx="9" cy="9" r="2.6"/><path d="M9 2.5v2M9 13.5v2M2.5 9h2M13.5 9h2M4.4 4.4l1.4 1.4M12.2 12.2l1.4 1.4M13.6 4.4l-1.4 1.4M5.8 12.2l-1.4 1.4"/>'},
   {id:'admin', label:'Admin', icon:'<path d="M9 2l6 2.5v4c0 4-2.5 6.8-6 7.5-3.5-.7-6-3.5-6-7.5v-4L9 2z"/>', adminOnly:true},
 ];
 
@@ -684,6 +779,8 @@ async function loginMember(){
   currentUser = found.name;
   currentMemberId = found.id;
   isAdmin = false;
+  found.lastLogin = new Date().toISOString();
+  try{ await window.storage.set(KEYS.wanachama, JSON.stringify(state.wanachama), true); }catch(e){}
   enterApp();
 }
 
@@ -731,10 +828,35 @@ async function enterApp(){
   await loadAll();
   applyRoleVisibility();
   renderWeb();
+  showWelcomeSplash();
+}
+
+const ENCOURAGEMENT_MESSAGES = [
+  { verse:'"Come to me, all who labor and are heavy laden, and I will give you rest." — Matthew 11:28', note:'Wherever you are today, you are not alone. This family carries you in prayer.' },
+  { verse:'"I can do all things through him who strengthens me." — Philippians 4:13', note:'Whatever season you\'re in — studies, work, waiting — God is working it for good.' },
+  { verse:'"The LORD bless you and keep you; the LORD make his face to shine upon you." — Numbers 6:24-25', note:'You are seen, you are valued, and this community is glad you are here.' },
+  { verse:'"Cast all your anxieties on him, because he cares for you." — 1 Peter 5:7', note:'Whatever you\'re carrying today, you don\'t have to carry it alone.' }
+];
+
+function showWelcomeSplash(){
+  const msg = ENCOURAGEMENT_MESSAGES[Math.floor(Math.random()*ENCOURAGEMENT_MESSAGES.length)];
+  const el = document.getElementById('welcome-splash');
+  document.getElementById('welcome-splash-photo').src = HERO_PHOTO_DATA;
+  document.getElementById('welcome-splash-name').textContent = currentUser;
+  document.getElementById('welcome-splash-verse').textContent = msg.verse;
+  document.getElementById('welcome-splash-note').textContent = msg.note;
+  el.classList.add('active');
+}
+function dismissWelcomeSplash(){
+  document.getElementById('welcome-splash').classList.remove('active');
 }
 
 function applyRoleVisibility(){
   document.querySelectorAll('.admin-only-btn').forEach(b=> b.classList.toggle('show', isAdmin));
+  const memberBlock = document.getElementById('settings-member-block');
+  const adminBlock = document.getElementById('settings-admin-block');
+  if(memberBlock) memberBlock.style.display = (!isAdmin && currentMemberId) ? 'block' : 'none';
+  if(adminBlock) adminBlock.style.display = isAdmin ? 'block' : 'none';
 }
 
 function buildNav(){
@@ -850,6 +972,7 @@ async function saveList(name){
 function renderAll(){
   renderMatangazo(); renderMatukio(); renderWanachama(); renderMichango(); renderChat(); renderHome();
   renderKalenda(); renderKura(); renderPicha(); renderWajumbe(); renderMafunzo(); renderPending();
+  renderAdminAnalytics(); applyRoleVisibility();
 }
 
 function fmtDate(iso){
@@ -934,10 +1057,17 @@ function renderWanachama(){
   const sorted = [...approved].sort((a,b)=> a.name.localeCompare(b.name));
   el.innerHTML = sorted.map(w=>{
     const skills = (w.ujuzi||'').split(',').map(s=>s.trim()).filter(Boolean);
+    const initials = (w.name||'?').trim().split(/\s+/).map(p=>p[0]).slice(0,2).join('').toUpperCase();
+    const avatar = w.photo
+      ? `<img class="avatar-photo" src="${w.photo}">`
+      : `<div class="avatar-placeholder" style="width:44px;height:44px;font-size:15px;">${esc(initials)}</div>`;
     return `
     <div class="card">
       <div class="top-row">
-        <div><h4>${esc(w.name)}</h4><div class="meta">${w.mahali? esc(w.mahali) : 'Location not provided'}${w.phone? ' · '+esc(w.phone) : ''}</div></div>
+        <div class="member-name-row">
+          ${avatar}
+          <div><h4>${esc(w.name)}</h4><div class="meta">${w.mahali? esc(w.mahali) : 'Location not provided'}${w.phone? ' · '+esc(w.phone) : ''}</div></div>
+        </div>
         <button class="del-btn admin-only-btn show-inline" onclick="removeItem('wanachama','${w.id}')" style="${isAdmin?'':'display:none'}">Delete</button>
       </div>
       <div class="profile-grid">
@@ -1238,6 +1368,73 @@ async function approveMember(id){
   await saveList('wanachama');
   toast('Member approved');
 }
+
+/* ---------- ADMIN: Analytics dashboard ---------- */
+const ACTIVE_WINDOW_DAYS = 30;
+
+function renderAdminAnalytics(){
+  const grid = document.getElementById('analytics-grid');
+  const chart = document.getElementById('region-chart');
+  if(!grid || !chart || !isAdmin) return;
+
+  const approved = state.wanachama.filter(w=>w.status==='approved');
+  const totalMembers = approved.length;
+
+  const now = Date.now();
+  const activeCount = approved.filter(w=>{
+    if(!w.lastLogin) return false;
+    const days = (now - new Date(w.lastLogin).getTime()) / 86400000;
+    return days <= ACTIVE_WINDOW_DAYS;
+  }).length;
+  const inactiveCount = totalMembers - activeCount;
+  const engagement = totalMembers ? Math.round((activeCount/totalMembers)*100) : 0;
+
+  const totalFinance = state.michango.reduce((sum,m)=> sum + (parseFloat(m.amount)||0), 0);
+
+  grid.innerHTML = `
+    <div class="analytics-card accent"><b>${totalMembers}</b><span>Total Members</span></div>
+    <div class="analytics-card"><b>TSh ${totalFinance.toLocaleString()}</b><span>Total Contributions</span></div>
+    <div class="analytics-card"><b>${activeCount}</b><span>Active (last ${ACTIVE_WINDOW_DAYS}d)</span></div>
+    <div class="analytics-card"><b>${inactiveCount}</b><span>Inactive</span></div>
+    <div class="analytics-card accent"><b>${engagement}%</b><span>Engagement Rate</span></div>
+    <div class="analytics-card"><b>${state.matukio.length}</b><span>Total Events</span></div>
+  `;
+
+  const regionCounts = {};
+  approved.forEach(w=>{
+    const region = (w.mahali||'').trim() || 'Not specified';
+    regionCounts[region] = (regionCounts[region]||0) + 1;
+  });
+  const entries = Object.entries(regionCounts).sort((a,b)=> b[1]-a[1]);
+  const maxCount = entries.length ? entries[0][1] : 1;
+
+  if(entries.length===0){
+    chart.innerHTML = emptyState('No member location data yet.');
+  } else {
+    chart.innerHTML = entries.map(([region,count])=>`
+      <div class="region-row">
+        <div class="region-name">${esc(region)}</div>
+        <div class="region-bar-wrap"><div class="region-bar" style="width:${(count/maxCount*100).toFixed(0)}%"></div></div>
+        <div class="region-count">${count}</div>
+      </div>`).join('');
+  }
+}
+
+async function changeMyPassword(){
+  if(isAdmin || !currentMemberId){ toast('Admin accounts don\'t have a member password here'); return; }
+  const w = state.wanachama.find(x=>x.id===currentMemberId);
+  if(!w) return;
+  const current = document.getElementById('set-current-pass').value;
+  const next = document.getElementById('set-new-pass').value;
+  if(w.password !== current){ toast('Current password is incorrect'); return; }
+  if(!next || next.length < 4){ toast('New password must be at least 4 characters'); return; }
+  w.password = next;
+  await saveList('wanachama');
+  document.getElementById('set-current-pass').value='';
+  document.getElementById('set-new-pass').value='';
+  toast('Password updated');
+}
+
 async function rejectMember(id){
   state.wanachama = state.wanachama.filter(x=>x.id!==id);
   renderAll();
@@ -1251,8 +1448,16 @@ function openOwnProfile(){
   const w = state.wanachama.find(x=>x.id===currentMemberId);
   if(!w) return;
   const modal = document.getElementById('modal-content');
+  const initials = (w.name||'?').trim().split(/\s+/).map(p=>p[0]).slice(0,2).join('').toUpperCase();
   modal.innerHTML = `
     <h3>My Profile</h3>
+    <div class="profile-photo-row">
+      ${w.photo? `<img class="avatar-photo" id="op-photo-preview" src="${w.photo}">` : `<div class="avatar-placeholder" id="op-photo-preview">${esc(initials)}</div>`}
+      <div>
+        <input type="file" accept="image/*" id="op-photo-file" style="display:none" onchange="handleProfilePhotoSelect(this)">
+        <button class="btn-secondary" style="padding:8px 14px; font-size:12px;" onclick="document.getElementById('op-photo-file').click()">Change Photo</button>
+      </div>
+    </div>
     <div class="field"><label>Phone number</label><input id="op-phone" value="${esc(w.phone||'')}"></div>
     <div class="field"><label>Where you are based</label><input id="op-mahali" value="${esc(w.mahali||'')}"></div>
     <div class="field"><label>Year you started university</label><input id="op-mwakaanza" type="number" value="${esc(w.mwakaAnza||'')}"></div>
@@ -1265,7 +1470,36 @@ function openOwnProfile(){
       <button class="btn-primary" onclick="saveOwnProfile()">Save</button>
     </div>`;
   document.getElementById('overlay').classList.add('active');
+  pendingProfilePhoto = null;
 }
+
+let pendingProfilePhoto = null;
+function handleProfilePhotoSelect(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const maxSize = 300;
+      let w = img.width, h = img.height;
+      if(w > h && w > maxSize){ h = h*(maxSize/w); w = maxSize; }
+      else if(h > maxSize){ w = w*(maxSize/h); h = maxSize; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+      pendingProfilePhoto = dataUrl;
+      const preview = document.getElementById('op-photo-preview');
+      const newImg = document.createElement('img');
+      newImg.className = 'avatar-photo'; newImg.id = 'op-photo-preview'; newImg.src = dataUrl;
+      preview.replaceWith(newImg);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 async function saveOwnProfile(){
   const w = state.wanachama.find(x=>x.id===currentMemberId);
   if(!w) return;
@@ -1276,6 +1510,7 @@ async function saveOwnProfile(){
   w.kozi = document.getElementById('op-kozi').value.trim();
   w.kazi = document.getElementById('op-kazi').value.trim();
   w.ujuzi = document.getElementById('op-ujuzi').value.trim();
+  if(pendingProfilePhoto){ w.photo = pendingProfilePhoto; pendingProfilePhoto = null; }
   closeModal();
   renderAll();
   await saveList('wanachama');
