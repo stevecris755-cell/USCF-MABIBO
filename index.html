@@ -822,8 +822,15 @@ async function ensureWanachamaLoaded(){
   }catch(e){ state.wanachama = []; }
   if(state.wanachama.length===0 && DEMO_DATA.wanachama){
     state.wanachama = JSON.parse(JSON.stringify(DEMO_DATA.wanachama));
+    for(const w of state.wanachama){ if(w.password) w.password = await hashPassword(w.password); }
     try{ await window.storage.set(KEYS.wanachama, JSON.stringify(state.wanachama), true); }catch(e){}
   }
+}
+
+async function hashPassword(plain){
+  const enc = new TextEncoder().encode(plain);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
 async function loginMember(){
@@ -834,7 +841,16 @@ async function loginMember(){
   const found = state.wanachama.find(w=> w.name.toLowerCase()===name.toLowerCase());
   if(!found){ toast('No account with that name. Tap "Join"'); return; }
   if(found.status!=='approved'){ toast('Your account is still waiting for admin approval'); return; }
-  if(found.password !== pass){ toast('Incorrect password'); return; }
+  const looksHashed = /^[0-9a-f]{64}$/i.test(found.password||'');
+  let ok;
+  if(looksHashed){
+    ok = found.password === await hashPassword(pass);
+  } else {
+    // Legacy account saved before password hashing was added — check plain text once, then upgrade it.
+    ok = found.password === pass;
+    if(ok){ found.password = await hashPassword(pass); }
+  }
+  if(!ok){ toast('Incorrect password'); return; }
   currentUser = found.name;
   currentMemberId = found.id;
   isAdmin = false;
@@ -851,7 +867,7 @@ async function registerMember(){
   if(state.wanachama.find(w=> w.name.toLowerCase()===name.toLowerCase())){ toast('This name is already registered. Try "Sign In".'); return; }
   const entry = {
     id: cryptoId(), name,
-    password,
+    password: await hashPassword(password),
     phone: document.getElementById('j-phone').value.trim(),
     mahali: document.getElementById('j-mahali').value.trim(),
     mwakaAnza: document.getElementById('j-mwakaanza').value.trim(),
@@ -867,6 +883,7 @@ async function registerMember(){
   ['j-name','j-password','j-phone','j-mahali','j-mwakaanza','j-mwakamaliza','j-kozi','j-kazi','j-ujuzi'].forEach(id=> document.getElementById(id).value='');
   switchLoginTab('ingia');
 }
+
 
 function loginAdmin(){
   const pass = document.getElementById('ad-password').value;
@@ -1016,6 +1033,9 @@ async function loadAll(){
     }catch(e){ state[k] = []; }
     if(state[k].length===0 && DEMO_DATA[k]){
       state[k] = JSON.parse(JSON.stringify(DEMO_DATA[k]));
+      if(k==='wanachama'){
+        for(const w of state[k]){ if(w.password) w.password = await hashPassword(w.password); }
+      }
       try{ await window.storage.set(KEYS[k], JSON.stringify(state[k]), true); }catch(e){}
     }
   }
@@ -1485,9 +1505,9 @@ async function changeMyPassword(){
   if(!w) return;
   const current = document.getElementById('set-current-pass').value;
   const next = document.getElementById('set-new-pass').value;
-  if(w.password !== current){ toast('Current password is incorrect'); return; }
+  if(w.password !== await hashPassword(current)){ toast('Current password is incorrect'); return; }
   if(!next || next.length < 4){ toast('New password must be at least 4 characters'); return; }
-  w.password = next;
+  w.password = await hashPassword(next);
   await saveList('wanachama');
   document.getElementById('set-current-pass').value='';
   document.getElementById('set-new-pass').value='';
@@ -1697,7 +1717,7 @@ async function submitForm(section){
   if(section==='matangazo'){ obj.author = currentUser; obj.date = new Date().toISOString(); }
   if(section==='picha'){ obj.addedBy = currentUser; obj.date = new Date().toISOString(); }
   if(section==='mafunzo'){ obj.author = currentUser; obj.date = new Date().toISOString(); }
-  if(section==='wanachama'){ obj.status = 'approved'; }
+  if(section==='wanachama'){ obj.status = 'approved'; obj.password = await hashPassword(obj.password); }
   state[section].push(obj);
   closeModal();
   renderAll();
