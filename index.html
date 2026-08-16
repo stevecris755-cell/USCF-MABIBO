@@ -667,6 +667,12 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
         <p class="settings-note">The Admin master password is stored directly in this app's code (search for <b>ADMIN_PASSWORD</b> in the file) and can only be changed by editing and redeploying the file. Individual member passwords can be reset by approving a fresh join request or asking the member to use "Change My Password" once signed in.</p>
       </div>
 
+      <div class="settings-block" id="settings-backup-block" style="display:none;">
+        <h4>Backup Data</h4>
+        <p class="settings-note">Download a full copy of all app data (announcements, events, members, contributions, polls, photos, testimonies, committee) as a single file. Keep it somewhere safe in case anything ever needs to be restored.</p>
+        <button class="btn-primary" style="margin-top:12px;" onclick="downloadBackup()">Download Backup</button>
+      </div>
+
       <div class="settings-block">
         <h4>About this App</h4>
         <p class="settings-note">USCF Mabibo Associates Social Welfare — a shared home for announcements, events, members, contributions and fellowship. Data is stored securely in the cloud and shared with all approved members.</p>
@@ -932,8 +938,10 @@ function applyRoleVisibility(){
   document.querySelectorAll('.admin-only-btn').forEach(b=> b.classList.toggle('show', isAdmin));
   const memberBlock = document.getElementById('settings-member-block');
   const adminBlock = document.getElementById('settings-admin-block');
+  const backupBlock = document.getElementById('settings-backup-block');
   if(memberBlock) memberBlock.style.display = (!isAdmin && currentMemberId) ? 'block' : 'none';
   if(adminBlock) adminBlock.style.display = isAdmin ? 'block' : 'none';
+  if(backupBlock) backupBlock.style.display = isAdmin ? 'block' : 'none';
 }
 
 function buildNav(){
@@ -1534,6 +1542,27 @@ async function submitPasswordReset(id){
   closeModal();
   await saveList('wanachama');
   toast('Password reset for '+w.name);
+}
+
+function downloadBackup(){
+  if(!isAdmin){ toast('Only an Admin can download a backup'); return; }
+  const backup = {
+    exportedAt: new Date().toISOString(),
+    exportedBy: currentUser,
+    app: 'USCF Mabibo Associates Social Welfare',
+    data: state
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `uscf-mabibo-backup-${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Backup downloaded');
 }
 
 async function changeMyPassword(){
