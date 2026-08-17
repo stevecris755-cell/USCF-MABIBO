@@ -140,7 +140,8 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
 .stat b{display:block; font-size:24px; font-family:'Fraunces'; font-weight:600;}
 .stat span{font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; font-family:'IBM Plex Mono';}
 
-.home-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+.home-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px;}
+@media (max-width:900px){ .home-grid{grid-template-columns:1fr 1fr;} }
 @media (max-width:720px){ .home-grid{grid-template-columns:1fr;} }
 .mini-card{border:1px solid var(--line); border-radius:14px; padding:18px 20px; background:var(--bg-elev);}
 .mini-card h4{margin:0 0 10px; font-size:13px; text-transform:uppercase; letter-spacing:0.05em; color:var(--gold); font-family:'IBM Plex Mono'; font-weight:500;}
@@ -172,6 +173,32 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
 }
 .del-btn{background:none; border:none; color:var(--muted); font-size:12px; padding:4px 6px;}
 .reset-btn{background:none; border:1px solid var(--gold); color:var(--gold); font-size:11.5px; padding:5px 10px; border-radius:7px;}
+
+/* ---------- RSVP ---------- */
+.rsvp-row{display:flex; align-items:center; justify-content:space-between; margin-top:12px; padding-top:12px; border-top:1px solid var(--line);}
+.rsvp-count{font-size:12px; color:var(--muted); font-family:'IBM Plex Mono';}
+.rsvp-btn{background:var(--gold-soft); color:var(--gold); border:1px solid var(--gold); border-radius:8px; padding:7px 14px; font-size:12px; font-weight:600;}
+.rsvp-btn.going{background:var(--sage); color:#0f1a12; border-color:var(--sage);}
+
+/* ---------- Prayer wall ---------- */
+.pray-btn{margin-top:12px; background:none; border:1px solid var(--line); color:var(--muted); border-radius:20px; padding:7px 14px; font-size:12.5px;}
+.pray-btn.active{border-color:var(--gold); color:var(--gold); background:var(--gold-soft);}
+.field-inline{margin-bottom:14px; font-size:13px; color:var(--muted);}
+.field-inline label{display:flex; align-items:center; gap:8px; cursor:pointer;}
+.field-inline input[type="checkbox"]{width:16px; height:16px;}
+
+/* ---------- Role tags ---------- */
+.role-tag{display:inline-block; font-family:'IBM Plex Mono'; font-size:9.5px; padding:2px 7px; border-radius:20px; background:var(--sage); color:#0f1a12; font-weight:700; letter-spacing:0.04em; margin-left:6px; vertical-align:middle;}
+
+/* ---------- Select ---------- */
+.field select{width:100%; padding:10px 12px; background:var(--bg); border:1px solid var(--line); border-radius:8px; color:var(--cream); font-family:inherit; font-size:14px;}
+
+/* ---------- Home birthday widget ---------- */
+.birthday-item{display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px;}
+.birthday-item:last-child{border-bottom:none;}
+.birthday-item .bday-icon{font-size:16px;}
+.birthday-item b{color:var(--cream);}
+.birthday-item span{color:var(--muted); font-size:11.5px; margin-left:auto; font-family:'IBM Plex Mono';}
 .del-btn:hover{color:var(--warn);}
 .empty-state{
   text-align:center; padding:50px 20px; color:var(--muted); border:1px dashed var(--line); border-radius:14px;
@@ -419,6 +446,7 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
       <div class="field"><label>Course you studied</label><input id="j-kozi" type="text"></div>
       <div class="field"><label>Current job (optional)</label><input id="j-kazi" type="text"></div>
       <div class="field"><label>Your skills (comma-separated)</label><input id="j-ujuzi" type="text" placeholder="e.g. Accounting, Leadership, IT"></div>
+      <div class="field"><label>Birthday (optional)</label><input id="j-birthday" type="date"></div>
       <button class="btn-primary" onclick="registerMember()">Submit Join Request</button>
       <p class="login-note">Your request will be reviewed by an admin. You'll be able to sign in once approved.</p>
     </div>
@@ -472,6 +500,10 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
         <div class="mini-card">
           <h4>Next Event</h4>
           <div id="home-tukio"></div>
+        </div>
+        <div class="mini-card" id="home-birthday-card" style="display:none;">
+          <h4>Upcoming Birthdays</h4>
+          <div id="home-birthdays"></div>
         </div>
       </div>
     </section>
@@ -530,7 +562,7 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
         <h2>Announcements</h2>
         <p>News and important updates for all members.</p>
       </div>
-      <div class="toolbar"><button class="btn-add admin-only-btn" onclick="openModal('matangazo')">+ New Announcement</button></div>
+      <div class="toolbar"><button class="btn-add admin-only-btn" data-scope="matangazo" onclick="openModal('matangazo')">+ New Announcement</button></div>
       <div class="card-list" id="list-matangazo"></div>
     </section>
 
@@ -541,7 +573,7 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
         <h2>Events</h2>
         <p>Upcoming meetings, services and social activities.</p>
       </div>
-      <div class="toolbar"><button class="btn-add admin-only-btn" onclick="openModal('matukio')">+ New Event</button></div>
+      <div class="toolbar"><button class="btn-add admin-only-btn" data-scope="matukio" onclick="openModal('matukio')">+ New Event</button></div>
       <div class="card-list" id="list-matukio"></div>
     </section>
 
@@ -593,7 +625,7 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
         <h2>Members</h2>
         <p>Profiles of approved members — course, university years, job and skills.</p>
       </div>
-      <div class="toolbar"><button class="btn-add admin-only-btn" onclick="openModal('wanachama')">+ Add Member</button></div>
+      <div class="toolbar"><button class="btn-add admin-only-btn" data-scope="wanachama" onclick="openModal('wanachama')">+ Add Member</button></div>
       <div class="card-list" id="list-wanachama"></div>
     </section>
 
@@ -604,7 +636,7 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
         <h2>Committee Members</h2>
         <p>Leadership of the Social Welfare Committee.</p>
       </div>
-      <div class="toolbar"><button class="btn-add admin-only-btn" onclick="openModal('wajumbe')">+ Add Committee Member</button></div>
+      <div class="toolbar"><button class="btn-add admin-only-btn" data-scope="wajumbe" onclick="openModal('wajumbe')">+ Add Committee Member</button></div>
       <div class="card-list" id="list-wajumbe"></div>
     </section>
 
@@ -619,6 +651,39 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
       <div class="card-list" id="list-mafunzo"></div>
     </section>
 
+    <!-- PRAYER REQUESTS -->
+    <section class="page" id="page-maombi">
+      <div class="page-head">
+        <div class="eyebrow">Together in Prayer</div>
+        <h2>Prayer Requests</h2>
+        <p>Share what's on your heart. Others can stand with you in prayer.</p>
+      </div>
+      <div class="toolbar"><button class="btn-add" onclick="openPrayerModal()">+ Share a Request</button></div>
+      <div class="card-list" id="list-maombi"></div>
+    </section>
+
+    <!-- OPPORTUNITIES -->
+    <section class="page" id="page-fursa">
+      <div class="page-head">
+        <div class="eyebrow">Growth</div>
+        <h2>Opportunities</h2>
+        <p>Jobs, gigs and openings shared by members for members.</p>
+      </div>
+      <div class="toolbar"><button class="btn-add" onclick="openModal('fursa')">+ Post an Opportunity</button></div>
+      <div class="card-list" id="list-fursa"></div>
+    </section>
+
+    <!-- MENTORS -->
+    <section class="page" id="page-mentors">
+      <div class="page-head">
+        <div class="eyebrow">Growth</div>
+        <h2>Mentors</h2>
+        <p>Members who have offered to guide others in their field. Reach out directly.</p>
+      </div>
+      <div class="toolbar"><button class="btn-secondary" style="margin-left:auto; display:block;" onclick="toggleMentorStatus()" id="mentor-toggle-btn">Become a Mentor</button></div>
+      <div class="card-list" id="list-mentors"></div>
+    </section>
+
     <!-- CONTRIBUTIONS -->
     <section class="page" id="page-michango">
       <div class="page-head">
@@ -626,7 +691,8 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
         <h2>Contributions</h2>
         <p>Record of group contributions — visible to everyone for transparency.</p>
       </div>
-      <div class="toolbar"><button class="btn-add admin-only-btn" onclick="openModal('michango')">+ Record Contribution</button></div>
+      <div class="payment-info-card" id="payment-info-card"></div>
+      <div class="toolbar"><button class="btn-add admin-only-btn" data-scope="michango" onclick="openModal('michango')">+ Record Contribution</button></div>
       <div class="card-list" id="list-michango"></div>
     </section>
 
@@ -795,6 +861,9 @@ const TABS = [
   {id:'wanachama', label:'Members', icon:'<circle cx="6.5" cy="6" r="3"/><path d="M1.5 16c0-3 2.2-5 5-5s5 2 5 5"/><circle cx="13" cy="6.5" r="2.3"/><path d="M11.5 8.5c2 .3 3.5 1.9 3.5 4"/>'},
   {id:'wajumbe', label:'Committee', icon:'<path d="M3 15c0-3.5 2.7-6 6-6s6 2.5 6 6"/><circle cx="9" cy="5.5" r="3"/>'},
   {id:'mafunzo', label:'What I\'ve Learned', icon:'<path d="M9 2l2 4.5L16 7l-3.5 3.2L13.5 15 9 12.5 4.5 15l1-4.8L2 7l5-.5z"/>'},
+  {id:'maombi', label:'Prayer Requests', icon:'<path d="M9 2c-2 3-4 5-4 8a4 4 0 0 0 8 0c0-3-2-5-4-8z"/>'},
+  {id:'fursa', label:'Opportunities', icon:'<rect x="2.5" y="6" width="13" height="8.5" rx="1.5"/><path d="M6.5 6V4.5a1.5 1.5 0 0 1 1.5-1.5h2a1.5 1.5 0 0 1 1.5 1.5V6"/>'},
+  {id:'mentors', label:'Mentors', icon:'<circle cx="9" cy="6" r="3"/><path d="M3.5 15.5c0-3.5 2.5-6 5.5-6s5.5 2.5 5.5 6"/><path d="M13.5 4.5l1.2 1.2 2-2"/>'},
   {id:'kura', label:'Polls', icon:'<path d="M4 15V9M9 15V4M14 15v-7"/><path d="M2.5 15h13"/>'},
   {id:'picha', label:'Photos', icon:'<rect x="2.5" y="3.5" width="13" height="11" rx="2"/><circle cx="6" cy="7.5" r="1.4"/><path d="M15 12l-3.5-3.5-3 3-2-2L3 13"/>'},
   {id:'michango', label:'Contributions', icon:'<circle cx="9" cy="9" r="7"/><path d="M9 5.5v7M11.5 7c0-1-1-1.7-2.5-1.7S6.5 6 6.5 7s.8 1.4 2.5 1.7 2.5.7 2.5 1.8-1 1.8-2.5 1.8S6 12 6 11"/>'},
@@ -809,8 +878,16 @@ const HERO_PHOTO_DATA = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBD
 let currentUser = '';
 let currentMemberId = null;
 let isAdmin = false;
-let state = { matangazo:[], matukio:[], wanachama:[], michango:[], majadiliano:[], kura:[], picha:[], wajumbe:[], mafunzo:[] };
-const KEYS = { matangazo:'uscf:matangazo', matukio:'uscf:matukio', wanachama:'uscf:wanachama', michango:'uscf:michango', majadiliano:'uscf:majadiliano', kura:'uscf:kura', picha:'uscf:picha', wajumbe:'uscf:wajumbe', mafunzo:'uscf:mafunzo' };
+let state = { matangazo:[], matukio:[], wanachama:[], michango:[], majadiliano:[], kura:[], picha:[], wajumbe:[], mafunzo:[], maombi:[], fursa:[], settings:{} };
+const KEYS = { matangazo:'uscf:matangazo', matukio:'uscf:matukio', wanachama:'uscf:wanachama', michango:'uscf:michango', majadiliano:'uscf:majadiliano', kura:'uscf:kura', picha:'uscf:picha', wajumbe:'uscf:wajumbe', mafunzo:'uscf:mafunzo', maombi:'uscf:maombi', fursa:'uscf:fursa', settings:'uscf:settings' };
+let memberRole = ''; // '', 'treasurer', 'secretary'
+
+function canManage(section){
+  if(isAdmin) return true;
+  if(memberRole==='treasurer' && section==='michango') return true;
+  if(memberRole==='secretary' && (section==='matangazo' || section==='matukio')) return true;
+  return false;
+}
 let calDate = new Date();
 let calSelected = null;
 
@@ -861,6 +938,7 @@ async function loginMember(){
   currentUser = found.name;
   currentMemberId = found.id;
   isAdmin = false;
+  memberRole = found.role || '';
   found.lastLogin = new Date().toISOString();
   try{ await window.storage.set(KEYS.wanachama, JSON.stringify(state.wanachama), true); }catch(e){}
   enterApp();
@@ -882,12 +960,15 @@ async function registerMember(){
     kozi: document.getElementById('j-kozi').value.trim(),
     kazi: document.getElementById('j-kazi').value.trim(),
     ujuzi: document.getElementById('j-ujuzi').value.trim(),
+    birthday: document.getElementById('j-birthday').value,
+    role: '',
+    mentor: false,
     status: 'pending'
   };
   state.wanachama.push(entry);
   try{ await window.storage.set(KEYS.wanachama, JSON.stringify(state.wanachama), true); }catch(e){}
   toast('Your request has been sent! Wait for admin approval, then "Sign In".');
-  ['j-name','j-password','j-phone','j-mahali','j-mwakaanza','j-mwakamaliza','j-kozi','j-kazi','j-ujuzi'].forEach(id=> document.getElementById(id).value='');
+  ['j-name','j-password','j-phone','j-mahali','j-mwakaanza','j-mwakamaliza','j-kozi','j-kazi','j-ujuzi','j-birthday'].forEach(id=> document.getElementById(id).value='');
   switchLoginTab('ingia');
 }
 
@@ -899,6 +980,7 @@ function loginAdmin(){
   currentUser = name || 'Msimamizi';
   currentMemberId = null;
   isAdmin = true;
+  memberRole = '';
   enterApp();
 }
 
@@ -935,7 +1017,11 @@ function dismissWelcomeSplash(){
 }
 
 function applyRoleVisibility(){
-  document.querySelectorAll('.admin-only-btn').forEach(b=> b.classList.toggle('show', isAdmin));
+  document.querySelectorAll('.admin-only-btn').forEach(b=>{
+    const scope = b.dataset.scope;
+    const allowed = scope ? canManage(scope) : isAdmin;
+    b.classList.toggle('show', allowed);
+  });
   const memberBlock = document.getElementById('settings-member-block');
   const adminBlock = document.getElementById('settings-admin-block');
   const backupBlock = document.getElementById('settings-backup-block');
@@ -1036,6 +1122,13 @@ const DEMO_DATA = {
 
 async function loadAll(){
   for(const k of Object.keys(KEYS)){
+    if(k==='settings'){
+      try{
+        const res = await window.storage.get(KEYS.settings, true);
+        state.settings = res && res.value ? JSON.parse(res.value) : {};
+      }catch(e){ state.settings = {}; }
+      continue;
+    }
     try{
       const res = await window.storage.get(KEYS[k], true);
       state[k] = res && res.value ? JSON.parse(res.value) : [];
@@ -1060,7 +1153,7 @@ async function saveList(name){
 function renderAll(){
   renderMatangazo(); renderMatukio(); renderWanachama(); renderMichango(); renderChat(); renderHome();
   renderKalenda(); renderKura(); renderPicha(); renderWajumbe(); renderMafunzo(); renderPending();
-  renderAdminAnalytics(); applyRoleVisibility();
+  renderAdminAnalytics(); renderMaombi(); renderFursa(); renderMentors(); applyRoleVisibility();
 }
 
 function fmtDate(iso){
@@ -1092,6 +1185,33 @@ function renderHome(){
     const nxt = future[0];
     eBox.innerHTML = `<div class="item"><strong>${esc(nxt.title)}</strong><small>${fmtDate(nxt.date)} ${nxt.location? '· '+esc(nxt.location):''}</small></div>`;
   }
+
+  const bdayCard = document.getElementById('home-birthday-card');
+  const bdayBox = document.getElementById('home-birthdays');
+  const upcomingBdays = getUpcomingBirthdays(30);
+  if(upcomingBdays.length===0){ bdayCard.style.display='none'; }
+  else{
+    bdayCard.style.display='block';
+    bdayBox.innerHTML = upcomingBdays.slice(0,5).map(b=>`
+      <div class="birthday-item">
+        <span class="bday-icon">🎂</span><b>${esc(b.name)}</b>
+        <span>${b.daysAway===0? 'Today!' : b.daysAway===1? 'Tomorrow' : 'in '+b.daysAway+'d'}</span>
+      </div>`).join('');
+  }
+}
+
+function getUpcomingBirthdays(withinDays){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const results = [];
+  state.wanachama.filter(w=>w.status==='approved' && w.birthday).forEach(w=>{
+    const bday = new Date(w.birthday);
+    if(isNaN(bday)) return;
+    let next = new Date(today.getFullYear(), bday.getMonth(), bday.getDate());
+    if(next < today) next = new Date(today.getFullYear()+1, bday.getMonth(), bday.getDate());
+    const daysAway = Math.round((next - today) / 86400000);
+    if(daysAway <= withinDays){ results.push({ name: w.name, daysAway }); }
+  });
+  return results.sort((a,b)=> a.daysAway - b.daysAway);
 }
 
 function renderWeb(){
@@ -1106,11 +1226,12 @@ function renderMatangazo(){
   const el = document.getElementById('list-matangazo');
   if(state.matangazo.length===0){ el.innerHTML = emptyState('No announcements yet. Tap "+ New Announcement" to start.'); return; }
   const sorted = [...state.matangazo].sort((a,b)=> new Date(b.date)-new Date(a.date));
+  const mng = canManage('matangazo');
   el.innerHTML = sorted.map(m=>`
     <div class="card">
       <div class="top-row">
         <div><h4>${esc(m.title)}</h4><div class="meta">${esc(m.author)} · ${fmtDate(m.date)}</div></div>
-        <div class="admin-only-btn show-inline" style="${isAdmin?'display:flex; gap:8px;':'display:none'}">
+        <div style="${mng?'display:flex; gap:8px;':'display:none'}">
           <button class="reset-btn" onclick="openModal('matangazo','${m.id}')">Edit</button>
           <button class="del-btn" onclick="removeItem('matangazo','${m.id}')">Delete</button>
         </div>
@@ -1124,21 +1245,29 @@ function renderMatukio(){
   const el = document.getElementById('list-matukio');
   if(state.matukio.length===0){ el.innerHTML = emptyState('No events scheduled. Add the first one.'); return; }
   const sorted = [...state.matukio].sort((a,b)=> new Date(a.date)-new Date(b.date));
+  const mng = canManage('matukio');
   el.innerHTML = sorted.map(e=>{
     const past = e.date && new Date(e.date) < new Date(new Date().toDateString());
+    const attendees = e.attendees || [];
+    const isGoing = attendees.includes(currentUser);
+    const canRSVP = !isAdmin && (currentMemberId || isAdmin);
     return `
     <div class="card">
       <div class="top-row">
         <div><h4>${esc(e.title)}</h4><div class="meta">${fmtDate(e.date)}${e.location? ' · '+esc(e.location):''}</div></div>
         <div style="display:flex; gap:8px; align-items:center;">
           ${past? '<span class="tag" style="background:var(--muted); color:#111;">Past</span>' : '<span class="tag">Upcoming</span>'}
-          <div class="admin-only-btn show-inline" style="${isAdmin?'display:flex; gap:8px;':'display:none'}">
+          <div style="${mng?'display:flex; gap:8px;':'display:none'}">
             <button class="reset-btn" onclick="openModal('matukio','${e.id}')">Edit</button>
             <button class="del-btn" onclick="removeItem('matukio','${e.id}')">Delete</button>
           </div>
         </div>
       </div>
       ${e.description? `<p class="body-text">${esc(e.description)}</p>` : ''}
+      <div class="rsvp-row">
+        <span class="rsvp-count">${attendees.length} attending</span>
+        ${currentMemberId && !past ? `<button class="rsvp-btn ${isGoing?'going':''}" onclick="toggleRSVP('${e.id}')">${isGoing? '✓ Attending' : "I'll Attend"}</button>` : ''}
+      </div>
     </div>`;
   }).join('');
 }
@@ -1155,14 +1284,16 @@ function renderWanachama(){
     const avatar = w.photo
       ? `<img class="avatar-photo" src="${w.photo}">`
       : `<div class="avatar-placeholder" style="width:44px;height:44px;font-size:15px;">${esc(initials)}</div>`;
+    const roleTag = w.role ? `<span class="role-tag">${esc(w.role)}</span>` : '';
     return `
     <div class="card">
       <div class="top-row">
         <div class="member-name-row">
           ${avatar}
-          <div><h4>${esc(w.name)}</h4><div class="meta">${w.mahali? esc(w.mahali) : 'Location not provided'}${w.phone? ' · '+esc(w.phone) : ''}</div></div>
+          <div><h4>${esc(w.name)} ${roleTag}</h4><div class="meta">${w.mahali? esc(w.mahali) : 'Location not provided'}${w.phone? ' · '+esc(w.phone) : ''}</div></div>
         </div>
-        <div class="admin-only-btn show-inline" style="${isAdmin?'display:flex; gap:8px;':'display:none'}">
+        <div style="${isAdmin?'display:flex; gap:8px;':'display:none'}">
+          <button class="reset-btn" onclick="openRoleModal('${w.id}')">Role</button>
           <button class="reset-btn" onclick="openResetPasswordModal('${w.id}')">Reset Password</button>
           <button class="del-btn" onclick="removeItem('wanachama','${w.id}')">Delete</button>
         </div>
@@ -1180,6 +1311,14 @@ function renderWanachama(){
 /* ---------- MICHANGO ---------- */
 function renderMichango(){
   const el = document.getElementById('list-michango');
+  const mng = canManage('michango');
+  const info = document.getElementById('payment-info-card');
+  if(info){
+    const text = (state.settings && state.settings.paymentInfo) ? state.settings.paymentInfo : '';
+    info.innerHTML = text
+      ? `<div class="settings-block" style="margin-bottom:20px;"><h4>How to Contribute</h4><p class="settings-note" style="white-space:pre-line;">${esc(text)}</p>${mng?`<button class="btn-secondary" style="margin-top:10px; padding:7px 12px; font-size:12px;" onclick="editPaymentInfo()">Edit</button>`:''}</div>`
+      : (mng ? `<div class="settings-block" style="margin-bottom:20px;"><p class="settings-note">No payment instructions set yet.</p><button class="btn-secondary" style="margin-top:10px; padding:7px 12px; font-size:12px;" onclick="editPaymentInfo()">Add Payment Info</button></div>` : '');
+  }
   if(state.michango.length===0){ el.innerHTML = emptyState('No contributions recorded yet.'); return; }
   const sorted = [...state.michango].sort((a,b)=> new Date(b.date)-new Date(a.date));
   el.innerHTML = sorted.map(m=>`
@@ -1188,10 +1327,197 @@ function renderMichango(){
         <div><h4>${esc(m.memberName)}</h4><div class="meta">${esc(m.purpose||'Contribution')} · ${fmtDate(m.date)}</div></div>
         <div style="display:flex; gap:8px; align-items:center;">
           <span class="tag mono">TSh ${(parseFloat(m.amount)||0).toLocaleString()}</span>
-          <button class="del-btn" onclick="removeItem('michango','${m.id}')">Delete</button>
+          ${mng?`<button class="reset-btn" onclick="openModal('michango','${m.id}')">Edit</button><button class="del-btn" onclick="removeItem('michango','${m.id}')">Delete</button>`:''}
         </div>
       </div>
     </div>`).join('');
+}
+
+/* ---------- RSVP ---------- */
+async function toggleRSVP(eventId){
+  if(!currentMemberId){ toast('Only signed-in members can RSVP'); return; }
+  const e = state.matukio.find(x=>x.id===eventId);
+  if(!e) return;
+  if(!e.attendees) e.attendees = [];
+  const idx = e.attendees.indexOf(currentUser);
+  if(idx>=0){ e.attendees.splice(idx,1); } else { e.attendees.push(currentUser); }
+  renderAll();
+  await saveList('matukio');
+}
+
+/* ---------- PRAYER REQUESTS ---------- */
+function openPrayerModal(){
+  const modal = document.getElementById('modal-content');
+  modal.innerHTML = `
+    <h3>Share a Prayer Request</h3>
+    <div class="field"><label>What's on your heart?</label><textarea id="pr-text"></textarea></div>
+    <div class="field-inline"><label><input type="checkbox" id="pr-anon"> Post anonymously</label></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="submitPrayer()">Share</button>
+    </div>`;
+  document.getElementById('overlay').classList.add('active');
+}
+async function submitPrayer(){
+  const text = document.getElementById('pr-text').value.trim();
+  const anon = document.getElementById('pr-anon').checked;
+  if(!text){ toast('Please write your request'); return; }
+  state.maombi.push({
+    id: cryptoId(), text,
+    author: anon ? 'Anonymous' : currentUser,
+    date: new Date().toISOString(),
+    prayedBy: []
+  });
+  closeModal();
+  renderAll();
+  await saveList('maombi');
+  toast('Your request has been shared');
+}
+function renderMaombi(){
+  const el = document.getElementById('list-maombi');
+  if(!el) return;
+  if(state.maombi.length===0){ el.innerHTML = emptyState('No prayer requests yet. Be the first to share.'); return; }
+  const sorted = [...state.maombi].sort((a,b)=> new Date(b.date)-new Date(a.date));
+  el.innerHTML = sorted.map(p=>{
+    const prayedBy = p.prayedBy || [];
+    const iPrayed = currentUser && prayedBy.includes(currentUser);
+    const canDelete = isAdmin || p.author===currentUser;
+    return `
+    <div class="card">
+      <div class="top-row">
+        <div><h4>${esc(p.author)}</h4><div class="meta">${fmtDate(p.date)}</div></div>
+        ${canDelete? `<button class="del-btn" onclick="removeItem('maombi','${p.id}')">Delete</button>` : ''}
+      </div>
+      <p class="body-text">${esc(p.text)}</p>
+      <button class="pray-btn ${iPrayed?'active':''}" onclick="togglePray('${p.id}')">🙏 ${iPrayed? 'Praying' : "I'm Praying"} (${prayedBy.length})</button>
+    </div>`;
+  }).join('');
+}
+async function togglePray(id){
+  if(!currentUser){ return; }
+  const p = state.maombi.find(x=>x.id===id);
+  if(!p) return;
+  if(!p.prayedBy) p.prayedBy = [];
+  const idx = p.prayedBy.indexOf(currentUser);
+  if(idx>=0){ p.prayedBy.splice(idx,1); } else { p.prayedBy.push(currentUser); }
+  renderAll();
+  await saveList('maombi');
+}
+
+/* ---------- OPPORTUNITIES ---------- */
+function renderFursa(){
+  const el = document.getElementById('list-fursa');
+  if(!el) return;
+  if(state.fursa.length===0){ el.innerHTML = emptyState('No opportunities posted yet.'); return; }
+  const sorted = [...state.fursa].sort((a,b)=> new Date(b.date)-new Date(a.date));
+  el.innerHTML = sorted.map(f=>{
+    const canDelete = isAdmin || f.postedBy===currentUser;
+    return `
+    <div class="card">
+      <div class="top-row">
+        <div><h4>${esc(f.title)}</h4><div class="meta">Posted by ${esc(f.postedBy)} · ${fmtDate(f.date)}</div></div>
+        ${canDelete? `<button class="del-btn" onclick="removeItem('fursa','${f.id}')">Delete</button>` : ''}
+      </div>
+      <p class="body-text">${esc(f.description)}</p>
+      ${f.contact? `<div class="profile-field" style="margin-top:6px;"><b>Contact</b>${esc(f.contact)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+/* ---------- MENTORS ---------- */
+function renderMentors(){
+  const el = document.getElementById('list-mentors');
+  const btn = document.getElementById('mentor-toggle-btn');
+  if(!el) return;
+  if(btn){
+    if(!currentMemberId){ btn.style.display='none'; }
+    else{
+      const me = state.wanachama.find(x=>x.id===currentMemberId);
+      btn.style.display='block';
+      btn.textContent = me && me.mentor ? 'Remove Myself as Mentor' : 'Become a Mentor';
+    }
+  }
+  const mentors = state.wanachama.filter(w=>w.status==='approved' && w.mentor);
+  if(mentors.length===0){ el.innerHTML = emptyState('No mentors listed yet.'); return; }
+  el.innerHTML = mentors.map(w=>{
+    const initials = (w.name||'?').trim().split(/\s+/).map(p=>p[0]).slice(0,2).join('').toUpperCase();
+    const avatar = w.photo ? `<img class="avatar-photo" src="${w.photo}">` : `<div class="avatar-placeholder" style="width:44px;height:44px;font-size:15px;">${esc(initials)}</div>`;
+    return `
+    <div class="card">
+      <div class="member-name-row">
+        ${avatar}
+        <div><h4>${esc(w.name)}</h4><div class="meta">${w.kazi? esc(w.kazi) : (w.kozi? esc(w.kozi) : '')}</div></div>
+      </div>
+      ${w.ujuzi? `<div style="margin-top:8px;">${w.ujuzi.split(',').map(s=>`<span class="skill-chip">${esc(s.trim())}</span>`).join('')}</div>`:''}
+      ${w.phone? `<div class="profile-field" style="margin-top:8px;"><b>Contact</b>${esc(w.phone)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+async function toggleMentorStatus(){
+  if(!currentMemberId){ toast('Only signed-in members can become mentors'); return; }
+  const w = state.wanachama.find(x=>x.id===currentMemberId);
+  if(!w) return;
+  w.mentor = !w.mentor;
+  renderAll();
+  await saveList('wanachama');
+  toast(w.mentor? 'You are now listed as a mentor' : 'You have been removed from the mentor list');
+}
+
+/* ---------- ROLE MANAGEMENT (Treasurer / Secretary) ---------- */
+function openRoleModal(id){
+  if(!isAdmin) return;
+  const w = state.wanachama.find(x=>x.id===id);
+  if(!w) return;
+  const modal = document.getElementById('modal-content');
+  modal.innerHTML = `
+    <h3>Assign Role</h3>
+    <p class="settings-note" style="margin-bottom:14px;">Choose a helper role for <b>${esc(w.name)}</b>. Treasurers can manage Contributions; Secretaries can manage Announcements and Events.</p>
+    <div class="field">
+      <label>Role</label>
+      <select id="role-select">
+        <option value="" ${!w.role?'selected':''}>No special role</option>
+        <option value="treasurer" ${w.role==='treasurer'?'selected':''}>Treasurer</option>
+        <option value="secretary" ${w.role==='secretary'?'selected':''}>Secretary</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveRole('${id}')">Save</button>
+    </div>`;
+  document.getElementById('overlay').classList.add('active');
+}
+async function saveRole(id){
+  const w = state.wanachama.find(x=>x.id===id);
+  if(!w) return;
+  w.role = document.getElementById('role-select').value;
+  closeModal();
+  renderAll();
+  await saveList('wanachama');
+  toast('Role updated');
+}
+
+/* ---------- PAYMENT INFO ---------- */
+function editPaymentInfo(){
+  if(!canManage('michango')) return;
+  const modal = document.getElementById('modal-content');
+  const current = (state.settings && state.settings.paymentInfo) || '';
+  modal.innerHTML = `
+    <h3>How to Contribute</h3>
+    <div class="field"><label>Payment instructions (e.g. M-Pesa/Tigo Pesa number, paybill)</label><textarea id="pay-info-text">${esc(current)}</textarea></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="savePaymentInfo()">Save</button>
+    </div>`;
+  document.getElementById('overlay').classList.add('active');
+}
+async function savePaymentInfo(){
+  const text = document.getElementById('pay-info-text').value.trim();
+  if(!state.settings) state.settings = {};
+  state.settings.paymentInfo = text;
+  closeModal();
+  renderAll();
+  try{ await window.storage.set(KEYS.settings, JSON.stringify(state.settings), true); }catch(e){}
+  toast('Payment info updated');
 }
 
 function emptyState(text){
@@ -1610,6 +1936,7 @@ function openOwnProfile(){
     <div class="field"><label>Course you studied</label><input id="op-kozi" value="${esc(w.kozi||'')}"></div>
     <div class="field"><label>Current job (optional)</label><input id="op-kazi" value="${esc(w.kazi||'')}"></div>
     <div class="field"><label>Your skills (comma-separated)</label><input id="op-ujuzi" value="${esc(w.ujuzi||'')}"></div>
+    <div class="field"><label>Birthday (optional)</label><input id="op-birthday" type="date" value="${esc(w.birthday||'')}"></div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">Close</button>
       <button class="btn-primary" onclick="saveOwnProfile()">Save</button>
@@ -1655,6 +1982,7 @@ async function saveOwnProfile(){
   w.kozi = document.getElementById('op-kozi').value.trim();
   w.kazi = document.getElementById('op-kazi').value.trim();
   w.ujuzi = document.getElementById('op-ujuzi').value.trim();
+  w.birthday = document.getElementById('op-birthday').value;
   if(pendingProfilePhoto){ w.photo = pendingProfilePhoto; pendingProfilePhoto = null; }
   closeModal();
   renderAll();
@@ -1665,7 +1993,7 @@ async function saveOwnProfile(){
 /* ---------- Shared remove/add ---------- */
 async function removeItem(section, id){
   const adminOnlyDelete = ['matangazo','matukio','michango','wanachama','wajumbe'];
-  if(adminOnlyDelete.includes(section) && !isAdmin){ toast('Only an Admin can delete this'); return; }
+  if(adminOnlyDelete.includes(section) && !canManage(section)){ toast('You do not have permission to delete this'); return; }
   state[section] = state[section].filter(x=>x.id!==id);
   renderAll();
   await saveList(section);
@@ -1704,6 +2032,7 @@ const FORMS = {
       {key:'kozi', label:'Course studied', type:'text'},
       {key:'kazi', label:'Current job (optional)', type:'text'},
       {key:'ujuzi', label:'Skills (comma-separated)', type:'text'},
+      {key:'birthday', label:'Birthday (optional)', type:'date'},
     ]
   },
   picha: {
@@ -1737,12 +2066,20 @@ const FORMS = {
       {key:'title', label:'Title (optional)', type:'text'},
       {key:'text', label:'What God has taught me', type:'textarea', required:true},
     ]
+  },
+  fursa: {
+    title:'Post an Opportunity',
+    fields:[
+      {key:'title', label:'Opportunity title', type:'text', required:true},
+      {key:'description', label:'Details', type:'textarea', required:true},
+      {key:'contact', label:'Contact info (optional)', type:'text'},
+    ]
   }
 };
 
 function openModal(section, editId){
   const adminOnlyOpen = ['matangazo','matukio','michango','wanachama','wajumbe'];
-  if(adminOnlyOpen.includes(section) && !isAdmin){ toast('Only an Admin can do this'); return; }
+  if(adminOnlyOpen.includes(section) && !canManage(section)){ toast('You do not have permission to do this'); return; }
   const cfg = FORMS[section];
   const existing = editId ? state[section].find(x=>x.id===editId) : null;
   const modal = document.getElementById('modal-content');
@@ -1773,7 +2110,7 @@ function closeModal(){ document.getElementById('overlay').classList.remove('acti
 const ADMIN_ONLY_SECTIONS = ['matangazo','matukio','michango','wanachama','wajumbe'];
 
 async function submitForm(section, editId){
-  if(ADMIN_ONLY_SECTIONS.includes(section) && !isAdmin){ toast('Only an Admin can do this'); return; }
+  if(ADMIN_ONLY_SECTIONS.includes(section) && !canManage(section)){ toast('You do not have permission to do this'); return; }
   const cfg = FORMS[section];
   const existing = editId ? state[section].find(x=>x.id===editId) : null;
   const obj = existing ? existing : { id: cryptoId() };
@@ -1787,6 +2124,7 @@ async function submitForm(section, editId){
     if(section==='matangazo'){ obj.author = currentUser; obj.date = new Date().toISOString(); }
     if(section==='picha'){ obj.addedBy = currentUser; obj.date = new Date().toISOString(); }
     if(section==='mafunzo'){ obj.author = currentUser; obj.date = new Date().toISOString(); }
+    if(section==='fursa'){ obj.postedBy = currentUser; obj.date = new Date().toISOString(); }
     if(section==='wanachama'){ obj.status = 'approved'; obj.password = await hashPassword(obj.password); }
     state[section].push(obj);
   }
