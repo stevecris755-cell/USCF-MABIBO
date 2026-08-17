@@ -233,15 +233,35 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
 
 /* ---------- Chat ---------- */
 .chat-wrap{display:flex; flex-direction:column; gap:10px; margin-bottom:16px; max-height:52vh; overflow-y:auto; padding-right:4px;}
-.msg{max-width:78%; padding:10px 14px; border-radius:14px; font-size:13.5px; line-height:1.5;}
+.msg{max-width:78%; padding:10px 14px; border-radius:14px; font-size:13.5px; line-height:1.5; position:relative;}
 .msg .author{font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--gold); margin-bottom:3px; display:block;}
 .msg.mine{align-self:flex-end; background:var(--gold-soft); border:1px solid var(--gold); border-bottom-right-radius:3px;}
 .msg.theirs{align-self:flex-start; background:var(--bg-elev2); border:1px solid var(--line); border-bottom-left-radius:3px;}
-.chat-input-row{display:flex; gap:10px;}
+.msg-meta{display:flex; align-items:center; gap:8px; margin-top:5px;}
+.msg-meta .edited-tag{font-size:10px; color:var(--muted); font-style:italic;}
+.msg-edit-btn{background:none; border:none; color:var(--gold); font-size:10.5px; padding:0; text-decoration:underline; cursor:pointer;}
+.msg audio{width:220px; max-width:100%; height:34px; margin-top:2px;}
+.chat-edit-banner{display:flex; align-items:center; justify-content:space-between; background:var(--gold-soft); border:1px solid var(--gold); color:var(--gold); font-size:12px; padding:8px 12px; border-radius:8px; margin-bottom:10px;}
+.chat-edit-banner button{background:none; border:none; color:var(--gold); text-decoration:underline; font-size:12px;}
+.chat-input-row{display:flex; gap:10px; align-items:center;}
 .chat-input-row input{flex:1;}
 .send-btn{
-  background:var(--gold); color:#1a1508; border:none; border-radius:10px; padding:0 18px; font-weight:600; font-size:13.5px;
+  background:var(--gold); color:#1a1508; border:none; border-radius:10px; padding:0 18px; font-weight:600; font-size:13.5px; height:44px;
 }
+.mic-btn{
+  width:44px; height:44px; flex-shrink:0; border-radius:10px; border:1px solid var(--line); background:var(--bg-elev); color:var(--muted);
+  display:flex; align-items:center; justify-content:center;
+}
+.mic-btn.recording{background:var(--warn); border-color:var(--warn); color:#2a1108; animation:pulseRec 1.2s ease-in-out infinite;}
+@keyframes pulseRec{ 0%,100%{opacity:1;} 50%{opacity:0.55;} }
+.rec-indicator{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--warn); margin-top:10px; font-family:'IBM Plex Mono';}
+.rec-indicator button{background:none; border:1px solid var(--warn); color:var(--warn); border-radius:6px; padding:3px 8px; font-size:11px; margin-left:6px;}
+
+/* ---------- Search ---------- */
+.search-box{margin-bottom:16px; position:relative;}
+.search-box input{width:100%; padding:11px 14px 11px 38px; border-radius:10px; border:1px solid var(--line); background:var(--bg-elev); color:var(--cream); font-size:13.5px; font-family:inherit;}
+.search-box input:focus{outline:2px solid var(--gold); outline-offset:1px;}
+.search-box svg{position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--muted); pointer-events:none;}
 
 /* ---------- Kalenda ---------- */
 .cal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
@@ -562,6 +582,10 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
         <h2>Announcements</h2>
         <p>News and important updates for all members.</p>
       </div>
+      <div class="search-box">
+        <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M12.2 12.2L16 16" stroke-linecap="round"/></svg>
+        <input id="search-matangazo" type="text" placeholder="Search announcements..." oninput="renderMatangazo()">
+      </div>
       <div class="toolbar"><button class="btn-add admin-only-btn" data-scope="matangazo" onclick="openModal('matangazo')">+ New Announcement</button></div>
       <div class="card-list" id="list-matangazo"></div>
     </section>
@@ -624,6 +648,10 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
         <div class="eyebrow">Community</div>
         <h2>Members</h2>
         <p>Profiles of approved members — course, university years, job and skills.</p>
+      </div>
+      <div class="search-box">
+        <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M12.2 12.2L16 16" stroke-linecap="round"/></svg>
+        <input id="search-wanachama" type="text" placeholder="Search by name, course, skill, location..." oninput="renderWanachama()">
       </div>
       <div class="toolbar"><button class="btn-add admin-only-btn" data-scope="wanachama" onclick="openModal('wanachama')">+ Add Member</button></div>
       <div class="card-list" id="list-wanachama"></div>
@@ -753,10 +781,17 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
         <p>Quick messages between members.</p>
       </div>
       <div class="chat-wrap" id="chat-wrap"></div>
-      <div class="chat-input-row">
-        <input id="chat-input" type="text" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendChat()">
-        <button class="send-btn" onclick="sendChat()">Send</button>
+      <div class="chat-edit-banner" id="chat-edit-banner" style="display:none;">
+        Editing message… <button onclick="cancelEditChat()">Cancel</button>
       </div>
+      <div class="chat-input-row">
+        <button class="mic-btn" id="mic-btn" onclick="toggleVoiceRecording()" title="Record voice message">
+          <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="2" width="5" height="9" rx="2.5"/><path d="M4 8.5a5 5 0 0 0 10 0M9 13.5v2.5M6.5 16h5"/></svg>
+        </button>
+        <input id="chat-input" type="text" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="send-btn" id="chat-send-btn" onclick="sendChat()">Send</button>
+      </div>
+      <div class="rec-indicator" id="rec-indicator" style="display:none;">🔴 Recording… <span id="rec-timer">0</span>s <button onclick="cancelVoiceRecording()">Cancel</button></div>
     </section>
   </main>
 </div>
@@ -1225,7 +1260,11 @@ function esc(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;',
 function renderMatangazo(){
   const el = document.getElementById('list-matangazo');
   if(state.matangazo.length===0){ el.innerHTML = emptyState('No announcements yet. Tap "+ New Announcement" to start.'); return; }
-  const sorted = [...state.matangazo].sort((a,b)=> new Date(b.date)-new Date(a.date));
+  const q = (document.getElementById('search-matangazo')?.value || '').trim().toLowerCase();
+  let list = state.matangazo;
+  if(q){ list = list.filter(m=> (m.title||'').toLowerCase().includes(q) || (m.body||'').toLowerCase().includes(q) || (m.author||'').toLowerCase().includes(q)); }
+  if(list.length===0){ el.innerHTML = emptyState('No announcements match your search.'); return; }
+  const sorted = [...list].sort((a,b)=> new Date(b.date)-new Date(a.date));
   const mng = canManage('matangazo');
   el.innerHTML = sorted.map(m=>`
     <div class="card">
@@ -1277,7 +1316,19 @@ function renderWanachama(){
   const el = document.getElementById('list-wanachama');
   const approved = state.wanachama.filter(w=>w.status==='approved');
   if(approved.length===0){ el.innerHTML = emptyState('No approved members yet.'); return; }
-  const sorted = [...approved].sort((a,b)=> a.name.localeCompare(b.name));
+  const q = (document.getElementById('search-wanachama')?.value || '').trim().toLowerCase();
+  let list = approved;
+  if(q){
+    list = approved.filter(w=>
+      (w.name||'').toLowerCase().includes(q) ||
+      (w.kozi||'').toLowerCase().includes(q) ||
+      (w.kazi||'').toLowerCase().includes(q) ||
+      (w.mahali||'').toLowerCase().includes(q) ||
+      (w.ujuzi||'').toLowerCase().includes(q)
+    );
+  }
+  if(list.length===0){ el.innerHTML = emptyState('No members match your search.'); return; }
+  const sorted = [...list].sort((a,b)=> a.name.localeCompare(b.name));
   el.innerHTML = sorted.map(w=>{
     const skills = (w.ujuzi||'').split(',').map(s=>s.trim()).filter(Boolean);
     const initials = (w.name||'?').trim().split(/\s+/).map(p=>p[0]).slice(0,2).join('').toUpperCase();
@@ -1525,12 +1576,23 @@ function emptyState(text){
 }
 
 /* ---------- CHAT ---------- */
+let editingChatId = null;
+
 function renderChat(){
   const wrap = document.getElementById('chat-wrap');
   if(state.majadiliano.length===0){ wrap.innerHTML = emptyState('No messages yet. Start the conversation!'); return; }
   wrap.innerHTML = state.majadiliano.map(m=>{
     const mine = m.author===currentUser;
-    return `<div class="msg ${mine?'mine':'theirs'}">${mine?'':'<span class="author">'+esc(m.author)+'</span>'}${esc(m.text)}</div>`;
+    const canEdit = mine && m.type!=='voice';
+    const bodyHtml = m.type==='voice'
+      ? `<audio controls src="${m.audio}"></audio>`
+      : esc(m.text);
+    const metaHtml = (m.edited || canEdit) ? `
+      <div class="msg-meta">
+        ${m.edited? '<span class="edited-tag">edited</span>':''}
+        ${canEdit? `<button class="msg-edit-btn" onclick="startEditChat('${m.id}')">Edit</button>`:''}
+      </div>` : '';
+    return `<div class="msg ${mine?'mine':'theirs'}">${mine?'':'<span class="author">'+esc(m.author)+'</span>'}${bodyHtml}${metaHtml}</div>`;
   }).join('');
   scrollChatBottom();
 }
@@ -1542,10 +1604,105 @@ async function sendChat(){
   const input = document.getElementById('chat-input');
   const text = input.value.trim();
   if(!text) return;
-  state.majadiliano.push({id:cryptoId(), author:currentUser, text, date:new Date().toISOString()});
+  if(editingChatId){
+    const m = state.majadiliano.find(x=>x.id===editingChatId);
+    if(m){ m.text = text; m.edited = true; }
+    editingChatId = null;
+    document.getElementById('chat-edit-banner').style.display='none';
+    document.getElementById('chat-send-btn').textContent = 'Send';
+  } else {
+    state.majadiliano.push({id:cryptoId(), author:currentUser, text, type:'text', date:new Date().toISOString()});
+  }
   input.value='';
   renderChat();
   await saveList('majadiliano');
+}
+function startEditChat(id){
+  const m = state.majadiliano.find(x=>x.id===id);
+  if(!m || m.author!==currentUser) return;
+  editingChatId = id;
+  document.getElementById('chat-input').value = m.text;
+  document.getElementById('chat-input').focus();
+  document.getElementById('chat-edit-banner').style.display='flex';
+  document.getElementById('chat-send-btn').textContent = 'Update';
+}
+function cancelEditChat(){
+  editingChatId = null;
+  document.getElementById('chat-input').value='';
+  document.getElementById('chat-edit-banner').style.display='none';
+  document.getElementById('chat-send-btn').textContent = 'Send';
+}
+
+/* ---------- Voice messages ---------- */
+let mediaRecorder = null;
+let recordedChunks = [];
+let recTimerInterval = null;
+let recSeconds = 0;
+const MAX_REC_SECONDS = 30;
+
+async function toggleVoiceRecording(){
+  if(mediaRecorder && mediaRecorder.state==='recording'){
+    stopVoiceRecording();
+    return;
+  }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    toast('Voice recording is not supported on this browser'); return;
+  }
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+      : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '';
+    mediaRecorder = mimeType ? new MediaRecorder(stream, {mimeType}) : new MediaRecorder(stream);
+    recordedChunks = [];
+    mediaRecorder.ondataavailable = (e)=>{ if(e.data.size>0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = ()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      handleRecordingStop();
+    };
+    mediaRecorder.start();
+    recSeconds = 0;
+    document.getElementById('mic-btn').classList.add('recording');
+    document.getElementById('rec-indicator').style.display='flex';
+    document.getElementById('rec-timer').textContent = '0';
+    recTimerInterval = setInterval(()=>{
+      recSeconds++;
+      document.getElementById('rec-timer').textContent = recSeconds;
+      if(recSeconds >= MAX_REC_SECONDS) stopVoiceRecording();
+    }, 1000);
+  }catch(e){
+    toast('Microphone access was denied or unavailable');
+  }
+}
+function stopVoiceRecording(){
+  if(mediaRecorder && mediaRecorder.state==='recording'){ mediaRecorder.stop(); }
+  clearInterval(recTimerInterval);
+  document.getElementById('mic-btn').classList.remove('recording');
+  document.getElementById('rec-indicator').style.display='none';
+}
+function cancelVoiceRecording(){
+  recordedChunks = [];
+  if(mediaRecorder && mediaRecorder.state==='recording'){
+    mediaRecorder.onstop = ()=>{ mediaRecorder.stream && mediaRecorder.stream.getTracks().forEach(t=>t.stop()); };
+    mediaRecorder.stop();
+  }
+  clearInterval(recTimerInterval);
+  document.getElementById('mic-btn').classList.remove('recording');
+  document.getElementById('rec-indicator').style.display='none';
+}
+async function handleRecordingStop(){
+  if(recordedChunks.length===0) return;
+  const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+  if(blob.size > 700000){ toast('That voice note is too long — try a shorter one'); return; }
+  const reader = new FileReader();
+  reader.onload = async ()=>{
+    state.majadiliano.push({
+      id: cryptoId(), author: currentUser, type:'voice', audio: reader.result,
+      date: new Date().toISOString()
+    });
+    renderChat();
+    await saveList('majadiliano');
+  };
+  reader.readAsDataURL(blob);
 }
 
 /* ---------- KALENDA ---------- */
