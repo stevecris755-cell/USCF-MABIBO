@@ -242,6 +242,17 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
 .msg-edit-btn{background:none; border:none; color:var(--gold); font-size:10.5px; padding:0; text-decoration:underline; cursor:pointer;}
 .msg audio{width:220px; max-width:100%; height:34px; margin-top:2px;}
 .chat-edit-banner{display:flex; align-items:center; justify-content:space-between; background:var(--gold-soft); border:1px solid var(--gold); color:var(--gold); font-size:12px; padding:8px 12px; border-radius:8px; margin-bottom:10px;}
+.chat-toolbar{display:flex; justify-content:flex-end; align-items:center; gap:10px; margin-bottom:10px;}
+.chat-select-btn{background:none; border:1px solid var(--line); color:var(--muted); border-radius:8px; padding:6px 12px; font-size:12px;}
+.chat-select-btn.active{border-color:var(--gold); color:var(--gold);}
+.chat-bulk-actions{display:flex; align-items:center; gap:10px; font-size:12px; color:var(--muted);}
+.msg-select-row{display:flex; align-items:flex-start; gap:8px;}
+.msg-select-row input[type="checkbox"]{margin-top:12px; width:16px; height:16px; flex-shrink:0;}
+.msg-actions-row{display:flex; align-items:center; gap:10px; margin-top:5px;}
+.msg-action-btn{background:none; border:none; color:var(--gold); font-size:10.5px; padding:0; text-decoration:underline; cursor:pointer;}
+.msg-action-btn.danger{color:var(--warn);}
+.msg-quote{border-left:2px solid var(--gold); padding:4px 8px; margin-bottom:6px; font-size:11.5px; color:var(--muted); background:rgba(0,0,0,0.15); border-radius:4px;}
+.msg-quote b{color:var(--gold);}
 .chat-edit-banner button{background:none; border:none; color:var(--gold); text-decoration:underline; font-size:12px;}
 .chat-input-row{display:flex; gap:10px; align-items:center;}
 .chat-input-row input{flex:1;}
@@ -780,9 +791,20 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
         <h2>Discussion</h2>
         <p>Quick messages between members.</p>
       </div>
+      <div class="chat-toolbar">
+        <button class="chat-select-btn" id="chat-select-btn" onclick="toggleSelectMode()">Select</button>
+        <div class="chat-bulk-actions" id="chat-bulk-actions" style="display:none;">
+          <span id="chat-selected-count">0 selected</span>
+          <button class="del-btn" onclick="deleteSelectedMessages()">Delete</button>
+          <button class="btn-secondary" style="flex:none; padding:6px 12px;" onclick="toggleSelectMode()">Cancel</button>
+        </div>
+      </div>
       <div class="chat-wrap" id="chat-wrap"></div>
       <div class="chat-edit-banner" id="chat-edit-banner" style="display:none;">
         Editing message… <button onclick="cancelEditChat()">Cancel</button>
+      </div>
+      <div class="chat-edit-banner" id="chat-reply-banner" style="display:none;">
+        Replying to <b id="chat-reply-author"></b>: <span id="chat-reply-snippet"></span> <button onclick="cancelReply()">Cancel</button>
       </div>
       <div class="chat-input-row">
         <button class="mic-btn" id="mic-btn" onclick="toggleVoiceRecording()" title="Record voice message">
@@ -1577,6 +1599,9 @@ function emptyState(text){
 
 /* ---------- CHAT ---------- */
 let editingChatId = null;
+let replyingToId = null;
+let selectModeOn = false;
+let selectedChatIds = new Set();
 
 function renderChat(){
   const wrap = document.getElementById('chat-wrap');
@@ -1584,15 +1609,22 @@ function renderChat(){
   wrap.innerHTML = state.majadiliano.map(m=>{
     const mine = m.author===currentUser;
     const canEdit = mine && m.type!=='voice';
+    const canDelete = mine || isAdmin;
     const bodyHtml = m.type==='voice'
       ? `<audio controls src="${m.audio}"></audio>`
       : esc(m.text);
-    const metaHtml = (m.edited || canEdit) ? `
-      <div class="msg-meta">
+    const quoted = m.replyTo ? `<div class="msg-quote"><b>${esc(m.replyTo.author)}</b><br>${esc(m.replyTo.snippet)}</div>` : '';
+    const actionsHtml = `
+      <div class="msg-actions-row">
         ${m.edited? '<span class="edited-tag">edited</span>':''}
-        ${canEdit? `<button class="msg-edit-btn" onclick="startEditChat('${m.id}')">Edit</button>`:''}
-      </div>` : '';
-    return `<div class="msg ${mine?'mine':'theirs'}">${mine?'':'<span class="author">'+esc(m.author)+'</span>'}${bodyHtml}${metaHtml}</div>`;
+        <button class="msg-action-btn" onclick="startReply('${m.id}')">Reply</button>
+        ${canEdit? `<button class="msg-action-btn" onclick="startEditChat('${m.id}')">Edit</button>`:''}
+        ${canDelete? `<button class="msg-action-btn danger" onclick="deleteChatMessage('${m.id}')">Delete</button>`:''}
+      </div>`;
+    const bubble = `<div class="msg ${mine?'mine':'theirs'}">${mine?'':'<span class="author">'+esc(m.author)+'</span>'}${quoted}${bodyHtml}${actionsHtml}</div>`;
+    if(!selectModeOn) return bubble;
+    const checked = selectedChatIds.has(m.id) ? 'checked' : '';
+    return `<div class="msg-select-row"><input type="checkbox" ${checked} onchange="toggleSelectMessage('${m.id}')">${bubble}</div>`;
   }).join('');
   scrollChatBottom();
 }
@@ -1611,7 +1643,17 @@ async function sendChat(){
     document.getElementById('chat-edit-banner').style.display='none';
     document.getElementById('chat-send-btn').textContent = 'Send';
   } else {
-    state.majadiliano.push({id:cryptoId(), author:currentUser, text, type:'text', date:new Date().toISOString()});
+    const newMsg = {id:cryptoId(), author:currentUser, text, type:'text', date:new Date().toISOString()};
+    if(replyingToId){
+      const orig = state.majadiliano.find(x=>x.id===replyingToId);
+      if(orig){
+        const snippet = orig.type==='voice' ? '🎤 Voice message' : (orig.text.length>60 ? orig.text.slice(0,60)+'…' : orig.text);
+        newMsg.replyTo = { id: orig.id, author: orig.author, snippet };
+      }
+      replyingToId = null;
+      document.getElementById('chat-reply-banner').style.display='none';
+    }
+    state.majadiliano.push(newMsg);
   }
   input.value='';
   renderChat();
@@ -1620,6 +1662,7 @@ async function sendChat(){
 function startEditChat(id){
   const m = state.majadiliano.find(x=>x.id===id);
   if(!m || m.author!==currentUser) return;
+  cancelReply();
   editingChatId = id;
   document.getElementById('chat-input').value = m.text;
   document.getElementById('chat-input').focus();
@@ -1631,6 +1674,59 @@ function cancelEditChat(){
   document.getElementById('chat-input').value='';
   document.getElementById('chat-edit-banner').style.display='none';
   document.getElementById('chat-send-btn').textContent = 'Send';
+}
+function startReply(id){
+  const m = state.majadiliano.find(x=>x.id===id);
+  if(!m) return;
+  cancelEditChat();
+  replyingToId = id;
+  const snippet = m.type==='voice' ? '🎤 Voice message' : (m.text.length>60 ? m.text.slice(0,60)+'…' : m.text);
+  document.getElementById('chat-reply-author').textContent = m.author;
+  document.getElementById('chat-reply-snippet').textContent = snippet;
+  document.getElementById('chat-reply-banner').style.display='flex';
+  document.getElementById('chat-input').focus();
+}
+function cancelReply(){
+  replyingToId = null;
+  document.getElementById('chat-reply-banner').style.display='none';
+}
+async function deleteChatMessage(id){
+  const m = state.majadiliano.find(x=>x.id===id);
+  if(!m) return;
+  if(m.author!==currentUser && !isAdmin){ toast('You can only delete your own messages'); return; }
+  state.majadiliano = state.majadiliano.filter(x=>x.id!==id);
+  renderChat();
+  await saveList('majadiliano');
+}
+
+/* ---------- Select mode (bulk delete) ---------- */
+function toggleSelectMode(){
+  selectModeOn = !selectModeOn;
+  selectedChatIds.clear();
+  document.getElementById('chat-select-btn').classList.toggle('active', selectModeOn);
+  document.getElementById('chat-select-btn').style.display = selectModeOn ? 'none' : 'inline-block';
+  document.getElementById('chat-bulk-actions').style.display = selectModeOn ? 'flex' : 'none';
+  updateSelectedCount();
+  renderChat();
+}
+function toggleSelectMessage(id){
+  if(selectedChatIds.has(id)) selectedChatIds.delete(id); else selectedChatIds.add(id);
+  updateSelectedCount();
+}
+function updateSelectedCount(){
+  const el = document.getElementById('chat-selected-count');
+  if(el) el.textContent = selectedChatIds.size + ' selected';
+}
+async function deleteSelectedMessages(){
+  if(selectedChatIds.size===0){ toast('No messages selected'); return; }
+  const notMine = [...selectedChatIds].some(id=>{
+    const m = state.majadiliano.find(x=>x.id===id);
+    return m && m.author!==currentUser && !isAdmin;
+  });
+  if(notMine){ toast('You can only delete your own messages'); return; }
+  state.majadiliano = state.majadiliano.filter(x=>!selectedChatIds.has(x.id));
+  toggleSelectMode();
+  await saveList('majadiliano');
 }
 
 /* ---------- Voice messages ---------- */
