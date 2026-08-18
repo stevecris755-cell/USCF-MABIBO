@@ -1260,6 +1260,27 @@ async function enterApp(){
   applyRoleVisibility();
   renderWeb();
   showWelcomeSplash();
+  startRealtimeSync();
+}
+
+let sectionUnsubs = {};
+function startRealtimeSync(){
+  if(!firebaseReady || !db) return;
+  Object.keys(KEYS).forEach(k=>{
+    if(sectionUnsubs[k]) return; // already listening, avoid duplicate listeners
+    sectionUnsubs[k] = db.collection(FS_COLLECTION).doc(KEYS[k]).onSnapshot((doc)=>{
+      if(!doc.exists) return;
+      try{
+        const val = doc.data().value;
+        if(k==='settings'){
+          state.settings = val ? JSON.parse(val) : {};
+        } else {
+          state[k] = val ? JSON.parse(val) : [];
+        }
+        renderAll();
+      }catch(e){ console.error('Realtime sync error for', k, e); }
+    }, (err)=>{ console.error('Realtime listener error for', k, err); });
+  });
 }
 
 const ENCOURAGEMENT_MESSAGES = [
@@ -1901,6 +1922,7 @@ let selectedChatIds = new Set();
 
 function renderChat(){
   const wrap = document.getElementById('chat-wrap');
+  const wasNearBottom = (wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight) < 80;
   if(state.majadiliano.length===0){ wrap.innerHTML = emptyState('No messages yet. Start the conversation!', '💬'); return; }
   wrap.innerHTML = state.majadiliano.map(m=>{
     const mine = m.author===currentUser;
@@ -1922,7 +1944,7 @@ function renderChat(){
     const checked = selectedChatIds.has(m.id) ? 'checked' : '';
     return `<div class="msg-select-row"><input type="checkbox" ${checked} onchange="toggleSelectMessage('${m.id}')">${bubble}</div>`;
   }).join('');
-  scrollChatBottom();
+  if(wasNearBottom) scrollChatBottom();
 }
 function scrollChatBottom(){
   const wrap = document.getElementById('chat-wrap');
