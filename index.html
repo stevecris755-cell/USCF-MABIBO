@@ -164,6 +164,8 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
   border:1px solid var(--line); background:var(--bg-elev); border-radius:14px; padding:18px 20px;
   position:relative;
 }
+.card.has-cover{padding-top:0; overflow:hidden;}
+.event-cover{width:calc(100% + 40px); margin:0 -20px 16px; height:150px; object-fit:cover; display:block;}
 .card .top-row{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
 .card h4{margin:0 0 4px; font-size:16px; font-weight:600;}
 .card .meta{font-family:'IBM Plex Mono'; font-size:11px; color:var(--muted); letter-spacing:0.03em;}
@@ -202,9 +204,10 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
 .birthday-item span{color:var(--muted); font-size:11.5px; margin-left:auto; font-family:'IBM Plex Mono';}
 .del-btn:hover{color:var(--warn);}
 .empty-state{
-  text-align:center; padding:50px 20px; color:var(--muted); border:1px dashed var(--line); border-radius:14px;
+  text-align:center; padding:56px 20px; color:var(--muted); border:1px dashed var(--line); border-radius:14px;
 }
-.empty-state .glyph{font-size:26px; margin-bottom:10px; opacity:0.6;}
+.empty-state .glyph{font-size:40px; margin-bottom:14px; opacity:0.85; display:block; filter:grayscale(15%);}
+.empty-state .empty-text{font-size:13.5px; line-height:1.5;}
 
 /* ---------- Forms (modal) ---------- */
 .overlay{
@@ -423,6 +426,31 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
 
 .menu-toggle{ display:none; }
 
+/* ---------- Loading skeleton ---------- */
+.loading-overlay{
+  position:fixed; inset:0; background:var(--bg); z-index:70; display:none;
+  align-items:center; justify-content:center; padding:24px;
+}
+.loading-overlay.active{display:flex;}
+.skeleton-wrap{width:100%; max-width:480px; display:flex; flex-direction:column; gap:14px;}
+.skeleton-card{
+  height:90px; border-radius:14px; border:1px solid var(--line);
+  background:linear-gradient(100deg, var(--bg-elev) 30%, var(--bg-elev2) 50%, var(--bg-elev) 70%);
+  background-size:200% 100%; animation:shimmer 1.4s ease-in-out infinite;
+}
+@keyframes shimmer{ 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
+
+/* ---------- Confetti ---------- */
+.confetti-container{position:fixed; inset:0; pointer-events:none; z-index:200; overflow:hidden;}
+.confetti-piece{
+  position:absolute; top:-20px; width:8px; height:14px; opacity:0.9; border-radius:2px;
+  animation:confettiFall linear forwards;
+}
+@keyframes confettiFall{
+  to{ transform:translateY(110vh) rotate(720deg); opacity:0.3; }
+}
+
+
 @media (max-width:860px){
   .sidebar{
     display:flex; position:fixed; top:0; left:0; bottom:0; z-index:60;
@@ -502,6 +530,13 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
     <svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2.5 5h13M2.5 9h13M2.5 13h13"/></svg>
   </button>
   <div class="menu-backdrop" id="menu-backdrop" onclick="toggleMenu(false)"></div>
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="skeleton-wrap">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
+  </div>
   <aside class="sidebar" id="sidebar">
     <div class="brand">
       <img id="logo-img-sidebar" class="brand-logo" src="" alt="USCF Mabibo Associates">
@@ -1098,7 +1133,9 @@ async function enterApp(){
   document.getElementById('user-chip-name').textContent = currentUser + (isAdmin? ' (Admin)' : '');
   document.getElementById('home-greet-name').textContent = currentUser;
   buildNav();
+  document.getElementById('loading-overlay').classList.add('active');
   await loadAll();
+  document.getElementById('loading-overlay').classList.remove('active');
   applyRoleVisibility();
   renderWeb();
   showWelcomeSplash();
@@ -1329,11 +1366,11 @@ function esc(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;',
 /* ---------- MATANGAZO ---------- */
 function renderMatangazo(){
   const el = document.getElementById('list-matangazo');
-  if(state.matangazo.length===0){ el.innerHTML = emptyState('No announcements yet. Tap "+ New Announcement" to start.'); return; }
+  if(state.matangazo.length===0){ el.innerHTML = emptyState('No announcements yet. Tap "+ New Announcement" to start.', '📣'); return; }
   const q = (document.getElementById('search-matangazo')?.value || '').trim().toLowerCase();
   let list = state.matangazo;
   if(q){ list = list.filter(m=> (m.title||'').toLowerCase().includes(q) || (m.body||'').toLowerCase().includes(q) || (m.author||'').toLowerCase().includes(q)); }
-  if(list.length===0){ el.innerHTML = emptyState('No announcements match your search.'); return; }
+  if(list.length===0){ el.innerHTML = emptyState('No announcements match your search.', '🔍'); return; }
   const sorted = [...list].sort((a,b)=> new Date(b.date)-new Date(a.date));
   const mng = canManage('matangazo');
   el.innerHTML = sorted.map(m=>`
@@ -1352,7 +1389,7 @@ function renderMatangazo(){
 /* ---------- MATUKIO ---------- */
 function renderMatukio(){
   const el = document.getElementById('list-matukio');
-  if(state.matukio.length===0){ el.innerHTML = emptyState('No events scheduled. Add the first one.'); return; }
+  if(state.matukio.length===0){ el.innerHTML = emptyState('No events scheduled. Add the first one.', '📅'); return; }
   const sorted = [...state.matukio].sort((a,b)=> new Date(a.date)-new Date(b.date));
   const mng = canManage('matukio');
   el.innerHTML = sorted.map(e=>{
@@ -1361,7 +1398,8 @@ function renderMatukio(){
     const isGoing = attendees.includes(currentUser);
     const canRSVP = !isAdmin && (currentMemberId || isAdmin);
     return `
-    <div class="card">
+    <div class="card ${e.coverPhoto?'has-cover':''}">
+      ${e.coverPhoto? `<img class="event-cover" src="${e.coverPhoto}" alt="${esc(e.title)}">` : ''}
       <div class="top-row">
         <div><h4>${esc(e.title)}</h4><div class="meta">${fmtDate(e.date)}${e.location? ' · '+esc(e.location):''}</div></div>
         <div style="display:flex; gap:8px; align-items:center;">
@@ -1385,7 +1423,7 @@ function renderMatukio(){
 function renderWanachama(){
   const el = document.getElementById('list-wanachama');
   const approved = state.wanachama.filter(w=>w.status==='approved');
-  if(approved.length===0){ el.innerHTML = emptyState('No approved members yet.'); return; }
+  if(approved.length===0){ el.innerHTML = emptyState('No approved members yet.', '👥'); return; }
   const q = (document.getElementById('search-wanachama')?.value || '').trim().toLowerCase();
   let list = approved;
   if(q){
@@ -1397,7 +1435,7 @@ function renderWanachama(){
       (w.ujuzi||'').toLowerCase().includes(q)
     );
   }
-  if(list.length===0){ el.innerHTML = emptyState('No members match your search.'); return; }
+  if(list.length===0){ el.innerHTML = emptyState('No members match your search.', '🔍'); return; }
   const sorted = [...list].sort((a,b)=> a.name.localeCompare(b.name));
   el.innerHTML = sorted.map(w=>{
     const skills = (w.ujuzi||'').split(',').map(s=>s.trim()).filter(Boolean);
@@ -1440,7 +1478,7 @@ function renderMichango(){
       ? `<div class="settings-block" style="margin-bottom:20px;"><h4>How to Contribute</h4><p class="settings-note" style="white-space:pre-line;">${esc(text)}</p>${mng?`<button class="btn-secondary" style="margin-top:10px; padding:7px 12px; font-size:12px;" onclick="editPaymentInfo()">Edit</button>`:''}</div>`
       : (mng ? `<div class="settings-block" style="margin-bottom:20px;"><p class="settings-note">No payment instructions set yet.</p><button class="btn-secondary" style="margin-top:10px; padding:7px 12px; font-size:12px;" onclick="editPaymentInfo()">Add Payment Info</button></div>` : '');
   }
-  if(state.michango.length===0){ el.innerHTML = emptyState('No contributions recorded yet.'); return; }
+  if(state.michango.length===0){ el.innerHTML = emptyState('No contributions recorded yet.', '💛'); return; }
   const sorted = [...state.michango].sort((a,b)=> new Date(b.date)-new Date(a.date));
   el.innerHTML = sorted.map(m=>`
     <div class="card">
@@ -1497,7 +1535,7 @@ async function submitPrayer(){
 function renderMaombi(){
   const el = document.getElementById('list-maombi');
   if(!el) return;
-  if(state.maombi.length===0){ el.innerHTML = emptyState('No prayer requests yet. Be the first to share.'); return; }
+  if(state.maombi.length===0){ el.innerHTML = emptyState('No prayer requests yet. Be the first to share.', '🙏'); return; }
   const sorted = [...state.maombi].sort((a,b)=> new Date(b.date)-new Date(a.date));
   el.innerHTML = sorted.map(p=>{
     const prayedBy = p.prayedBy || [];
@@ -1529,7 +1567,7 @@ async function togglePray(id){
 function renderFursa(){
   const el = document.getElementById('list-fursa');
   if(!el) return;
-  if(state.fursa.length===0){ el.innerHTML = emptyState('No opportunities posted yet.'); return; }
+  if(state.fursa.length===0){ el.innerHTML = emptyState('No opportunities posted yet.', '💼'); return; }
   const sorted = [...state.fursa].sort((a,b)=> new Date(b.date)-new Date(a.date));
   el.innerHTML = sorted.map(f=>{
     const canDelete = isAdmin || f.postedBy===currentUser;
@@ -1559,7 +1597,7 @@ function renderMentors(){
     }
   }
   const mentors = state.wanachama.filter(w=>w.status==='approved' && w.mentor);
-  if(mentors.length===0){ el.innerHTML = emptyState('No mentors listed yet.'); return; }
+  if(mentors.length===0){ el.innerHTML = emptyState('No mentors listed yet.', '🎓'); return; }
   el.innerHTML = mentors.map(w=>{
     const initials = (w.name||'?').trim().split(/\s+/).map(p=>p[0]).slice(0,2).join('').toUpperCase();
     const avatar = w.photo ? `<img class="avatar-photo" src="${w.photo}">` : `<div class="avatar-placeholder" style="width:44px;height:44px;font-size:15px;">${esc(initials)}</div>`;
@@ -1641,8 +1679,8 @@ async function savePaymentInfo(){
   toast('Payment info updated');
 }
 
-function emptyState(text){
-  return `<div class="empty-state"><div class="glyph">◌</div>${text}</div>`;
+function emptyState(text, icon){
+  return `<div class="empty-state"><span class="glyph">${icon || '◌'}</span><div class="empty-text">${text}</div></div>`;
 }
 
 /* ---------- CHAT ---------- */
@@ -1653,7 +1691,7 @@ let selectedChatIds = new Set();
 
 function renderChat(){
   const wrap = document.getElementById('chat-wrap');
-  if(state.majadiliano.length===0){ wrap.innerHTML = emptyState('No messages yet. Start the conversation!'); return; }
+  if(state.majadiliano.length===0){ wrap.innerHTML = emptyState('No messages yet. Start the conversation!', '💬'); return; }
   wrap.innerHTML = state.majadiliano.map(m=>{
     const mine = m.author===currentUser;
     const canEdit = mine && m.type!=='voice';
@@ -1909,7 +1947,7 @@ function renderCalDayPanel(){
   if(!calSelected){ title.textContent = 'Select a marked day to see events'; panel.innerHTML=''; return; }
   const evs = eventsOnDate(calSelected);
   title.textContent = calSelected.toLocaleDateString('sw-TZ', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
-  if(evs.length===0){ panel.innerHTML = emptyState('No events on this day.'); return; }
+  if(evs.length===0){ panel.innerHTML = emptyState('No events on this day.', '📅'); return; }
   panel.innerHTML = evs.map(e=>`
     <div class="card">
       <h4>${esc(e.title)}</h4>
@@ -1922,7 +1960,7 @@ function renderCalDayPanel(){
 function renderKura(){
   const el = document.getElementById('list-kura');
   if(!el) return;
-  if(state.kura.length===0){ el.innerHTML = emptyState('No polls yet. Tap "+ New Poll" to start.'); return; }
+  if(state.kura.length===0){ el.innerHTML = emptyState('No polls yet. Tap "+ New Poll" to start.', '🗳️'); return; }
   const sorted = [...state.kura].sort((a,b)=> new Date(b.createdDate)-new Date(a.createdDate));
   el.innerHTML = sorted.map(p=>{
     const votes = p.votes || {};
@@ -2017,7 +2055,7 @@ async function votePoll(pollId, optionId){
 function renderPicha(){
   const el = document.getElementById('list-picha');
   if(!el) return;
-  if(state.picha.length===0){ el.innerHTML = emptyState('No photos yet. Tap "+ Add Photo" to paste a photo link.'); return; }
+  if(state.picha.length===0){ el.innerHTML = emptyState('No photos yet. Tap "+ Add Photo" to paste a photo link.', '📷'); return; }
   const sorted = [...state.picha].sort((a,b)=> new Date(b.date)-new Date(a.date));
   el.innerHTML = sorted.map(p=>`
     <div class="photo-card">
@@ -2034,7 +2072,7 @@ function renderPicha(){
 function renderWajumbe(){
   const el = document.getElementById('list-wajumbe');
   if(!el) return;
-  if(state.wajumbe.length===0){ el.innerHTML = emptyState('No committee members added yet.'); return; }
+  if(state.wajumbe.length===0){ el.innerHTML = emptyState('No committee members added yet.', '🎗️'); return; }
   el.innerHTML = state.wajumbe.map(w=>`
     <div class="card">
       <div class="top-row">
@@ -2048,7 +2086,7 @@ function renderWajumbe(){
 function renderMafunzo(){
   const el = document.getElementById('list-mafunzo');
   if(!el) return;
-  if(state.mafunzo.length===0){ el.innerHTML = emptyState('No testimonies yet. Be the first to share what you have learned.'); return; }
+  if(state.mafunzo.length===0){ el.innerHTML = emptyState('No testimonies yet. Be the first to share what you have learned.', '✨'); return; }
   const sorted = [...state.mafunzo].sort((a,b)=> new Date(b.date)-new Date(a.date));
   el.innerHTML = sorted.map(m=>`
     <div class="card">
@@ -2065,7 +2103,7 @@ function renderPending(){
   const el = document.getElementById('list-pending');
   if(!el) return;
   const pending = state.wanachama.filter(w=>w.status==='pending');
-  if(pending.length===0){ el.innerHTML = emptyState('No pending requests at the moment.'); return; }
+  if(pending.length===0){ el.innerHTML = emptyState('No pending requests at the moment.', '✅'); return; }
   el.innerHTML = pending.map(w=>`
     <div class="card">
       <div class="top-row">
@@ -2091,6 +2129,25 @@ async function approveMember(id){
   renderAll();
   await saveList('wanachama');
   toast('Member approved');
+  fireConfetti();
+}
+
+function fireConfetti(){
+  const colors = ['#D4AF6A', '#8FAE8B', '#F4E9D8', '#C97A5A'];
+  const container = document.createElement('div');
+  container.className = 'confetti-container';
+  for(let i=0; i<32; i++){
+    const piece = document.createElement('span');
+    piece.className = 'confetti-piece';
+    piece.style.left = (Math.random()*100) + 'vw';
+    piece.style.background = colors[Math.floor(Math.random()*colors.length)];
+    piece.style.animationDelay = (Math.random()*0.4) + 's';
+    piece.style.animationDuration = (1.8 + Math.random()*1.2) + 's';
+    piece.style.transform = `rotate(${Math.random()*360}deg)`;
+    container.appendChild(piece);
+  }
+  document.body.appendChild(container);
+  setTimeout(()=> container.remove(), 3200);
 }
 
 /* ---------- ADMIN: Analytics dashboard ---------- */
@@ -2133,7 +2190,7 @@ function renderAdminAnalytics(){
   const maxCount = entries.length ? entries[0][1] : 1;
 
   if(entries.length===0){
-    chart.innerHTML = emptyState('No member location data yet.');
+    chart.innerHTML = emptyState('No member location data yet.', '🗺️');
   } else {
     chart.innerHTML = entries.map(([region,count])=>`
       <div class="region-row">
@@ -2310,6 +2367,7 @@ const FORMS = {
       {key:'date', label:'Date', type:'date', required:true},
       {key:'location', label:'Location', type:'text'},
       {key:'description', label:'Description (optional)', type:'textarea'},
+      {key:'coverPhoto', label:'Cover photo link (optional)', type:'text'},
     ]
   },
   wanachama: {
