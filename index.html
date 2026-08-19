@@ -933,6 +933,7 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
   }
 
   const FS_COLLECTION = 'uscf_mabibo_data';
+  const MEMBERS_COLLECTION = 'members';
 
   document.addEventListener('DOMContentLoaded', ()=>{
     const notConfigured = firebaseConfig.apiKey.includes('PASTE_YOUR');
@@ -1112,7 +1113,7 @@ let currentUser = '';
 let currentMemberId = null;
 let isAdmin = false;
 let state = { matangazo:[], matukio:[], wanachama:[], michango:[], majadiliano:[], kura:[], picha:[], wajumbe:[], mafunzo:[], maombi:[], fursa:[], settings:{} };
-const KEYS = { matangazo:'uscf:matangazo', matukio:'uscf:matukio', wanachama:'uscf:wanachama', michango:'uscf:michango', majadiliano:'uscf:majadiliano', kura:'uscf:kura', picha:'uscf:picha', wajumbe:'uscf:wajumbe', mafunzo:'uscf:mafunzo', maombi:'uscf:maombi', fursa:'uscf:fursa', settings:'uscf:settings' };
+const KEYS = { matangazo:'uscf:matangazo', matukio:'uscf:matukio', michango:'uscf:michango', majadiliano:'uscf:majadiliano', kura:'uscf:kura', picha:'uscf:picha', wajumbe:'uscf:wajumbe', mafunzo:'uscf:mafunzo', maombi:'uscf:maombi', fursa:'uscf:fursa', settings:'uscf:settings' };
 let memberRole = ''; // '', 'treasurer', 'secretary'
 
 function canManage(section){
@@ -1139,13 +1140,49 @@ function switchLoginTab(tab){
 
 async function ensureWanachamaLoaded(){
   if(state.wanachama && state.wanachama.length) return;
+  await loadMembersOnce();
+}
+
+async function loadMembersOnce(){
   try{
-    const res = await window.storage.get(KEYS.wanachama, true);
-    state.wanachama = res && res.value ? JSON.parse(res.value) : [];
-  }catch(e){ state.wanachama = []; }
-  if(state.wanachama.length===0 && DEMO_DATA.wanachama){
-    state.wanachama = JSON.parse(JSON.stringify(DEMO_DATA.wanachama));
-    try{ await window.storage.set(KEYS.wanachama, JSON.stringify(state.wanachama), true); }catch(e){}
+    const snap = await db.collection(MEMBERS_COLLECTION).get();
+    if(snap.empty){
+      await migrateOldMembersIfNeeded();
+      const snap2 = await db.collection(MEMBERS_COLLECTION).get();
+      state.wanachama = snap2.docs.map(d=>({ id:d.id, uid:d.id, ...d.data() }));
+    } else {
+      state.wanachama = snap.docs.map(d=>({ id:d.id, uid:d.id, ...d.data() }));
+    }
+  }catch(e){
+    console.error('Failed to load members', e);
+    state.wanachama = [];
+  }
+}
+
+// One-time migration: brings over any members previously saved in the old
+// single-blob format (uscf:wanachama) or seeds demo data, so nothing is lost.
+async function migrateOldMembersIfNeeded(){
+  try{
+    const oldDoc = await db.collection(FS_COLLECTION).doc('uscf:wanachama').get();
+    const oldList = oldDoc.exists && oldDoc.data().value ? JSON.parse(oldDoc.data().value) : [];
+    const withUid = oldList.filter(w=>w.uid);
+    if(withUid.length){
+      for(const w of withUid){
+        const copy = {...w};
+        delete copy.id; delete copy.password;
+        await db.collection(MEMBERS_COLLECTION).doc(w.uid).set(copy, {merge:true});
+      }
+      return;
+    }
+  }catch(e){ console.error('Member migration check failed', e); }
+  // Nothing to migrate — seed demo members for a fresh install (display only; they can't sign in without a real account)
+  if(DEMO_DATA.wanachama){
+    for(const w of DEMO_DATA.wanachama){
+      const copy = {...w};
+      const demoId = 'demo_'+copy.name.toLowerCase().replace(/[^a-z0-9]+/g,'_');
+      delete copy.id; delete copy.password;
+      try{ await db.collection(MEMBERS_COLLECTION).doc(demoId).set(copy); }catch(e){}
+    }
   }
 }
 
@@ -1155,16 +1192,15 @@ async function loginMember(){
   if(!email || !pass){ toast('Fill in your email and password'); return; }
   try{
     const cred = await auth.signInWithEmailAndPassword(email, pass);
-    await ensureWanachamaLoaded();
-    const found = state.wanachama.find(w=> w.uid===cred.user.uid);
-    if(!found){ await auth.signOut(); toast('No member profile found for this account. Contact an Admin.'); return; }
-    if(found.status!=='approved'){ await auth.signOut(); toast('Your account is still waiting for admin approval'); return; }
-    currentUser = found.name;
-    currentMemberId = found.id;
+    const doc = await db.collection(MEMBERS_COLLECTION).doc(cred.user.uid).get();
+    if(!doc.exists){ await auth.signOut(); toast('No member profile found for this account. Contact an Admin.'); return; }
+    const data = doc.data();
+    if(data.status!=='approved'){ await auth.signOut(); toast('Your account is still waiting for admin approval'); return; }
+    currentUser = data.name;
+    currentMemberId = cred.user.uid;
     isAdmin = false;
-    memberRole = found.role || '';
-    found.lastLogin = new Date().toISOString();
-    try{ await window.storage.set(KEYS.wanachama, JSON.stringify(state.wanachama), true); }catch(e){}
+    memberRole = data.role || '';
+    try{ await db.collection(MEMBERS_COLLECTION).doc(cred.user.uid).update({ lastLogin: new Date().toISOString() }); }catch(e){}
     enterApp();
   }catch(e){
     toast(friendlyAuthError(e));
@@ -1179,9 +1215,8 @@ async function registerMember(){
   if(password.length < 6){ toast('Password must be at least 6 characters'); return; }
   try{
     const cred = await auth.createUserWithEmailAndPassword(email, password);
-    await ensureWanachamaLoaded();
     const entry = {
-      id: cryptoId(), name, uid: cred.user.uid, email,
+      name, email,
       phone: document.getElementById('j-phone').value.trim(),
       mahali: document.getElementById('j-mahali').value.trim(),
       mwakaAnza: document.getElementById('j-mwakaanza').value.trim(),
@@ -1194,8 +1229,7 @@ async function registerMember(){
       mentor: false,
       status: 'pending'
     };
-    state.wanachama.push(entry);
-    try{ await window.storage.set(KEYS.wanachama, JSON.stringify(state.wanachama), true); }catch(e){}
+    await db.collection(MEMBERS_COLLECTION).doc(cred.user.uid).set(entry);
     await auth.signOut();
     toast('Your request has been sent! Wait for admin approval, then "Sign In".');
     ['j-name','j-email','j-password','j-phone','j-mahali','j-mwakaanza','j-mwakamaliza','j-kozi','j-kazi','j-ujuzi','j-birthday'].forEach(id=> document.getElementById(id).value='');
@@ -1281,6 +1315,12 @@ function startRealtimeSync(){
       }catch(e){ console.error('Realtime sync error for', k, e); }
     }, (err)=>{ console.error('Realtime listener error for', k, err); });
   });
+  if(!sectionUnsubs.wanachama){
+    sectionUnsubs.wanachama = db.collection(MEMBERS_COLLECTION).onSnapshot((snap)=>{
+      state.wanachama = snap.docs.map(d=>({ id:d.id, uid:d.id, ...d.data() }));
+      renderAll();
+    }, (err)=>{ console.error('Realtime listener error for members', err); });
+  }
 }
 
 const ENCOURAGEMENT_MESSAGES = [
@@ -1408,6 +1448,7 @@ const DEMO_DATA = {
 };
 
 async function loadAll(){
+  await loadMembersOnce();
   for(const k of Object.keys(KEYS)){
     if(k==='settings'){
       try{
@@ -1847,10 +1888,15 @@ async function toggleMentorStatus(){
   if(!currentMemberId){ toast('Only signed-in members can become mentors'); return; }
   const w = state.wanachama.find(x=>x.id===currentMemberId);
   if(!w) return;
-  w.mentor = !w.mentor;
-  renderAll();
-  await saveList('wanachama');
-  toast(w.mentor? 'You are now listed as a mentor' : 'You have been removed from the mentor list');
+  const newVal = !w.mentor;
+  try{
+    await db.collection(MEMBERS_COLLECTION).doc(currentMemberId).update({ mentor: newVal });
+    w.mentor = newVal;
+    renderAll();
+    toast(w.mentor? 'You are now listed as a mentor' : 'You have been removed from the mentor list');
+  }catch(e){
+    toast('Failed to update. Please try again.');
+  }
 }
 
 /* ---------- ROLE MANAGEMENT (Treasurer / Secretary) ---------- */
@@ -1879,11 +1925,16 @@ function openRoleModal(id){
 async function saveRole(id){
   const w = state.wanachama.find(x=>x.id===id);
   if(!w) return;
-  w.role = document.getElementById('role-select').value;
-  closeModal();
-  renderAll();
-  await saveList('wanachama');
-  toast('Role updated');
+  const newRole = document.getElementById('role-select').value;
+  try{
+    await db.collection(MEMBERS_COLLECTION).doc(id).update({ role: newRole });
+    w.role = newRole;
+    closeModal();
+    renderAll();
+    toast('Role updated');
+  }catch(e){
+    toast('Failed to update role. Please try again.');
+  }
 }
 
 /* ---------- PAYMENT INFO ---------- */
@@ -2357,11 +2408,15 @@ function renderPending(){
 async function approveMember(id){
   const w = state.wanachama.find(x=>x.id===id);
   if(!w) return;
-  w.status = 'approved';
-  renderAll();
-  await saveList('wanachama');
-  toast('Member approved');
-  fireConfetti();
+  try{
+    await db.collection(MEMBERS_COLLECTION).doc(id).update({ status:'approved' });
+    w.status = 'approved';
+    renderAll();
+    toast('Member approved');
+    fireConfetti();
+  }catch(e){
+    toast('Failed to approve member. Please try again.');
+  }
 }
 
 function fireConfetti(){
@@ -2488,10 +2543,14 @@ async function changeMyPassword(){
 }
 
 async function rejectMember(id){
-  state.wanachama = state.wanachama.filter(x=>x.id!==id);
-  renderAll();
-  await saveList('wanachama');
-  toast('Request rejected');
+  try{
+    await db.collection(MEMBERS_COLLECTION).doc(id).delete();
+    state.wanachama = state.wanachama.filter(x=>x.id!==id);
+    renderAll();
+    toast('Request rejected');
+  }catch(e){
+    toast('Failed to reject request. Please try again.');
+  }
 }
 
 /* ---------- Own profile ---------- */
@@ -2556,25 +2615,44 @@ function handleProfilePhotoSelect(input){
 async function saveOwnProfile(){
   const w = state.wanachama.find(x=>x.id===currentMemberId);
   if(!w) return;
-  w.phone = document.getElementById('op-phone').value.trim();
-  w.mahali = document.getElementById('op-mahali').value.trim();
-  w.mwakaAnza = document.getElementById('op-mwakaanza').value.trim();
-  w.mwakaMaliza = document.getElementById('op-mwakamaliza').value.trim();
-  w.kozi = document.getElementById('op-kozi').value.trim();
-  w.kazi = document.getElementById('op-kazi').value.trim();
-  w.ujuzi = document.getElementById('op-ujuzi').value.trim();
-  w.birthday = document.getElementById('op-birthday').value;
-  if(pendingProfilePhoto){ w.photo = pendingProfilePhoto; pendingProfilePhoto = null; }
-  closeModal();
-  renderAll();
-  await saveList('wanachama');
-  toast('Your profile has been updated');
+  const updates = {
+    phone: document.getElementById('op-phone').value.trim(),
+    mahali: document.getElementById('op-mahali').value.trim(),
+    mwakaAnza: document.getElementById('op-mwakaanza').value.trim(),
+    mwakaMaliza: document.getElementById('op-mwakamaliza').value.trim(),
+    kozi: document.getElementById('op-kozi').value.trim(),
+    kazi: document.getElementById('op-kazi').value.trim(),
+    ujuzi: document.getElementById('op-ujuzi').value.trim(),
+    birthday: document.getElementById('op-birthday').value,
+  };
+  if(pendingProfilePhoto){ updates.photo = pendingProfilePhoto; }
+  try{
+    await db.collection(MEMBERS_COLLECTION).doc(currentMemberId).update(updates);
+    Object.assign(w, updates);
+    pendingProfilePhoto = null;
+    closeModal();
+    renderAll();
+    toast('Your profile has been updated');
+  }catch(e){
+    toast('Failed to update profile. Please try again.');
+  }
 }
 
 /* ---------- Shared remove/add ---------- */
 async function removeItem(section, id){
   const adminOnlyDelete = ['matangazo','matukio','michango','wanachama','wajumbe'];
   if(adminOnlyDelete.includes(section) && !canManage(section)){ toast('You do not have permission to delete this'); return; }
+  if(section==='wanachama'){
+    try{
+      await db.collection(MEMBERS_COLLECTION).doc(id).delete();
+      state.wanachama = state.wanachama.filter(x=>x.id!==id);
+      renderAll();
+      toast('Deleted');
+    }catch(e){
+      toast('Failed to delete. Please try again.');
+    }
+    return;
+  }
   state[section] = state[section].filter(x=>x.id!==id);
   renderAll();
   await saveList(section);
@@ -2703,21 +2781,32 @@ async function submitForm(section, editId){
     if(f.required && !val){ toast('Fill in all required fields'); return; }
     obj[f.key] = val;
   }
+  if(section==='wanachama' && !existing){
+    let uid;
+    try{
+      uid = await createAuthAccountWithoutSwitchingSession(obj.email, obj.password);
+    }catch(e){
+      toast(friendlyAuthError(e));
+      return;
+    }
+    const memberDoc = {...obj, status:'approved', role:'', mentor:false};
+    delete memberDoc.password; delete memberDoc.id;
+    try{
+      await db.collection(MEMBERS_COLLECTION).doc(uid).set(memberDoc);
+      state.wanachama.push({ id:uid, uid, ...memberDoc });
+      closeModal();
+      renderAll();
+      toast('Saved');
+    }catch(e){
+      toast('Failed to save member. Please try again.');
+    }
+    return;
+  }
   if(!existing){
     if(section==='matangazo'){ obj.author = currentUser; obj.date = new Date().toISOString(); }
     if(section==='picha'){ obj.addedBy = currentUser; obj.date = new Date().toISOString(); }
     if(section==='mafunzo'){ obj.author = currentUser; obj.date = new Date().toISOString(); }
     if(section==='fursa'){ obj.postedBy = currentUser; obj.date = new Date().toISOString(); }
-    if(section==='wanachama'){
-      obj.status = 'approved';
-      try{
-        obj.uid = await createAuthAccountWithoutSwitchingSession(obj.email, obj.password);
-      }catch(e){
-        toast(friendlyAuthError(e));
-        return;
-      }
-      delete obj.password;
-    }
     state[section].push(obj);
   }
   closeModal();
