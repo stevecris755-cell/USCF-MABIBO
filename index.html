@@ -108,6 +108,19 @@ nav.tabs{display:flex; flex-direction:column; gap:3px;}
   font-size:12.5px; color:var(--muted); display:flex; align-items:center; gap:8px;
 }
 .user-dot{width:8px;height:8px;border-radius:50%;background:var(--sage); flex-shrink:0;}
+.sidebar-filler{
+  flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;
+  gap:14px; padding:10px 8px; min-height:0;
+}
+.sidebar-filler img{
+  width:100%; max-height:180px; object-fit:cover; border-radius:14px; opacity:0.92;
+  box-shadow:0 10px 26px rgba(0,0,0,0.35);
+}
+.sidebar-filler p{
+  font-family:'Fraunces'; font-style:italic; font-size:12px; color:var(--muted);
+  text-align:center; line-height:1.5; margin:0; padding:0 4px;
+}
+@media (max-width:860px){ .sidebar-filler{ min-height:140px; } }
 
 /* mobile tabs */
 
@@ -557,6 +570,10 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
       <h1>USCF Mabibo<br>Associates</h1>
     </div>
     <nav class="tabs" id="nav-tabs"></nav>
+    <div class="sidebar-filler">
+      <img id="sidebar-filler-photo" src="" alt="USCF Mabibo Associates">
+      <p id="sidebar-filler-verse">"Let us not neglect meeting together, but encourage one another." — Hebrews 10:25</p>
+    </div>
     <div class="user-chip" onclick="openOwnProfile()"><span class="user-dot"></span><span id="user-chip-name">—</span></div>
   </aside>
 
@@ -1131,6 +1148,18 @@ const logoImgSidebar = document.getElementById('logo-img-sidebar');
 if(logoImgSidebar) logoImgSidebar.src = LOGO_DATA;
 applyLanguage(currentLang);
 
+const sidebarFillerPhoto = document.getElementById('sidebar-filler-photo');
+if(sidebarFillerPhoto) sidebarFillerPhoto.src = HERO_PHOTO_DATA;
+const SIDEBAR_VERSES = [
+  '"Let us not neglect meeting together, but encourage one another." — Hebrews 10:25',
+  '"I can do all things through him who strengthens me." — Philippians 4:13',
+  '"Cast all your anxieties on him, because he cares for you." — 1 Peter 5:7',
+  '"Above all, love each other deeply, because love covers over a multitude of sins." — 1 Peter 4:8',
+  '"Two are better than one, because they have a good reward for their toil." — Ecclesiastes 4:9'
+];
+const sidebarFillerVerse = document.getElementById('sidebar-filler-verse');
+if(sidebarFillerVerse) sidebarFillerVerse.textContent = SIDEBAR_VERSES[Math.floor(Math.random()*SIDEBAR_VERSES.length)];
+
 function switchLoginTab(tab){
   ['ingia','jiunge','admin'].forEach(t=>{
     document.getElementById('lt-'+t).classList.toggle('active', t===tab);
@@ -1198,7 +1227,7 @@ async function loginMember(){
     if(data.status!=='approved'){ await auth.signOut(); toast('Your account is still waiting for admin approval'); return; }
     currentUser = data.name;
     currentMemberId = cred.user.uid;
-    isAdmin = false;
+    isAdmin = data.isSiteAdmin === true;
     memberRole = data.role || '';
     try{ await db.collection(MEMBERS_COLLECTION).doc(cred.user.uid).update({ lastLogin: new Date().toISOString() }); }catch(e){}
     enterApp();
@@ -1352,7 +1381,7 @@ function applyRoleVisibility(){
   const memberBlock = document.getElementById('settings-member-block');
   const adminBlock = document.getElementById('settings-admin-block');
   const backupBlock = document.getElementById('settings-backup-block');
-  if(memberBlock) memberBlock.style.display = (!isAdmin && currentMemberId) ? 'block' : 'none';
+  if(memberBlock) memberBlock.style.display = currentMemberId ? 'block' : 'none';
   if(adminBlock) adminBlock.style.display = isAdmin ? 'block' : 'none';
   if(backupBlock) backupBlock.style.display = isAdmin ? 'block' : 'none';
 }
@@ -1663,12 +1692,13 @@ function renderWanachama(){
       ? `<img class="avatar-photo" src="${w.photo}">`
       : `<div class="avatar-placeholder" style="width:44px;height:44px;font-size:15px;">${esc(initials)}</div>`;
     const roleTag = w.role ? `<span class="role-tag">${esc(w.role)}</span>` : '';
+    const adminBadge = w.isSiteAdmin ? `<span class="admin-tag">Admin</span>` : '';
     return `
     <div class="card">
       <div class="top-row">
         <div class="member-name-row">
           ${avatar}
-          <div><h4>${esc(w.name)} ${roleTag}</h4><div class="meta">${w.mahali? esc(w.mahali) : 'Location not provided'}${w.phone? ' · '+esc(w.phone) : ''}</div></div>
+          <div><h4>${esc(w.name)} ${adminBadge}${roleTag}</h4><div class="meta">${w.mahali? esc(w.mahali) : 'Location not provided'}${w.phone? ' · '+esc(w.phone) : ''}</div></div>
         </div>
         <div style="${isAdmin?'display:flex; gap:8px;':'display:none'}">
           <button class="reset-btn" onclick="openRoleModal('${w.id}')">Role</button>
@@ -1916,6 +1946,10 @@ function openRoleModal(id){
         <option value="secretary" ${w.role==='secretary'?'selected':''}>Secretary</option>
       </select>
     </div>
+    <div class="field-inline" style="margin-top:6px; border-top:1px solid var(--line); padding-top:14px;">
+      <label><input type="checkbox" id="admin-access-check" ${w.isSiteAdmin?'checked':''}> Grant Full Admin Access</label>
+    </div>
+    <p class="settings-note">Full Admin Access lets this member approve members, manage everything, and grant admin access to others too. Use only for trusted co-leaders.</p>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">Cancel</button>
       <button class="btn-primary" onclick="saveRole('${id}')">Save</button>
@@ -1926,9 +1960,11 @@ async function saveRole(id){
   const w = state.wanachama.find(x=>x.id===id);
   if(!w) return;
   const newRole = document.getElementById('role-select').value;
+  const newAdminAccess = document.getElementById('admin-access-check').checked;
   try{
-    await db.collection(MEMBERS_COLLECTION).doc(id).update({ role: newRole });
+    await db.collection(MEMBERS_COLLECTION).doc(id).update({ role: newRole, isSiteAdmin: newAdminAccess });
     w.role = newRole;
+    w.isSiteAdmin = newAdminAccess;
     closeModal();
     renderAll();
     toast('Role updated');
@@ -2523,7 +2559,7 @@ function downloadBackup(){
 }
 
 async function changeMyPassword(){
-  if(isAdmin || !currentMemberId){ toast('Admin accounts don\'t have a member password here'); return; }
+  if(!currentMemberId){ toast('The master Admin account doesn\'t have a member password here'); return; }
   const w = state.wanachama.find(x=>x.id===currentMemberId);
   if(!w || !w.email){ toast('No email on file for this account'); return; }
   const current = document.getElementById('set-current-pass').value;
@@ -2555,7 +2591,7 @@ async function rejectMember(id){
 
 /* ---------- Own profile ---------- */
 function openOwnProfile(){
-  if(isAdmin || !currentMemberId){ toast('Admin accounts don\'t have a member profile'); return; }
+  if(!currentMemberId){ toast('The master Admin account doesn\'t have a member profile'); return; }
   const w = state.wanachama.find(x=>x.id===currentMemberId);
   if(!w) return;
   const modal = document.getElementById('modal-content');
