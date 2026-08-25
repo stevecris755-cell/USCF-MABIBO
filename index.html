@@ -199,6 +199,15 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
 
 /* ---------- Prayer wall ---------- */
 .pray-btn{margin-top:12px; background:none; border:1px solid var(--line); color:var(--muted); border-radius:20px; padding:7px 14px; font-size:12.5px;}
+.engage-row{display:flex; gap:8px; margin-top:14px; padding-top:12px; border-top:1px solid var(--line);}
+.engage-btn{background:none; border:1px solid var(--line); color:var(--muted); border-radius:20px; padding:6px 13px; font-size:12px;}
+.engage-btn.active{border-color:var(--warn); color:var(--warn); background:rgba(210,105,79,0.1);}
+.comments-panel{margin-top:14px; padding-top:12px; border-top:1px dashed var(--line);}
+.comment-row{font-size:12.5px; padding:6px 0; color:var(--cream); border-bottom:1px solid var(--line);}
+.comment-row:last-of-type{border-bottom:none;}
+.comment-row b{color:var(--gold); margin-right:6px;}
+.comment-input-row{display:flex; gap:8px; margin-top:10px;}
+.comment-input-row input{flex:1; padding:8px 12px; font-size:12.5px; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--cream); font-family:inherit;}
 .pray-btn.active{border-color:var(--gold); color:var(--gold); background:var(--gold-soft);}
 .field-inline{margin-bottom:14px; font-size:13px; color:var(--muted);}
 .field-inline label{display:flex; align-items:center; gap:8px; cursor:pointer;}
@@ -1249,7 +1258,7 @@ async function loginMember(){
     currentMemberId = cred.user.uid;
     isAdmin = data.isSiteAdmin === true;
     memberRole = data.role || '';
-    try{ await db.collection(MEMBERS_COLLECTION).doc(cred.user.uid).update({ lastLogin: new Date().toISOString() }); }catch(e){}
+    try{ await db.collection(MEMBERS_COLLECTION).doc(cred.user.uid).set({ lastLogin: new Date().toISOString() }, {merge:true}); }catch(e){ console.error('lastLogin update failed', e); }
     enterApp();
   }catch(e){
     toast(friendlyAuthError(e));
@@ -1943,12 +1952,13 @@ async function toggleMentorStatus(){
   if(!w) return;
   const newVal = !w.mentor;
   try{
-    await db.collection(MEMBERS_COLLECTION).doc(currentMemberId).update({ mentor: newVal });
+    await db.collection(MEMBERS_COLLECTION).doc(currentMemberId).set({ mentor: newVal }, {merge:true});
     w.mentor = newVal;
     renderAll();
     toast(w.mentor? 'You are now listed as a mentor' : 'You have been removed from the mentor list');
   }catch(e){
-    toast('Failed to update. Please try again.');
+    console.error('toggleMentorStatus failed', e);
+    toast('Could not update mentor status: ' + (e && e.message ? e.message : 'please try again'));
   }
 }
 
@@ -1985,14 +1995,15 @@ async function saveRole(id){
   const newRole = document.getElementById('role-select').value;
   const newAdminAccess = document.getElementById('admin-access-check').checked;
   try{
-    await db.collection(MEMBERS_COLLECTION).doc(id).update({ role: newRole, isSiteAdmin: newAdminAccess });
+    await db.collection(MEMBERS_COLLECTION).doc(id).set({ role: newRole, isSiteAdmin: newAdminAccess }, {merge:true});
     w.role = newRole;
     w.isSiteAdmin = newAdminAccess;
     closeModal();
     renderAll();
     toast('Role updated');
   }catch(e){
-    toast('Failed to update role. Please try again.');
+    console.error('saveRole failed', e);
+    toast('Could not update role: ' + (e && e.message ? e.message : 'please try again'));
   }
 }
 
@@ -2453,19 +2464,90 @@ function renderWajumbe(){
 }
 
 /* ---------- MAFUNZO (What God has taught me) ---------- */
+let mafunzoExpanded = new Set();
+let mafunzoDrafts = {};
+
 function renderMafunzo(){
   const el = document.getElementById('list-mafunzo');
   if(!el) return;
   if(state.mafunzo.length===0){ el.innerHTML = emptyState('No testimonies yet. Be the first to share what you have learned.', '✨'); return; }
   const sorted = [...state.mafunzo].sort((a,b)=> new Date(b.date)-new Date(a.date));
-  el.innerHTML = sorted.map(m=>`
+  el.innerHTML = sorted.map(m=>{
+    const likes = m.likes || [];
+    const comments = m.comments || [];
+    const iLiked = currentUser && likes.includes(currentUser);
+    const canDelete = isAdmin || m.author===currentUser;
+    const expanded = mafunzoExpanded.has(m.id);
+    const draft = mafunzoDrafts[m.id] || '';
+    return `
     <div class="card">
       <div class="top-row">
         <div><h4>${esc(m.title || 'Ushuhuda')}</h4><div class="meta">${esc(m.author)} · ${fmtDate(m.date)}</div></div>
-        <button class="del-btn" onclick="removeItem('mafunzo','${m.id}')">Delete</button>
+        ${canDelete? `<button class="del-btn" onclick="removeItem('mafunzo','${m.id}')">Delete</button>` : ''}
       </div>
       <p class="body-text">${esc(m.text)}</p>
-    </div>`).join('');
+      <div class="engage-row">
+        <button class="engage-btn ${iLiked?'active':''}" onclick="toggleMafunzoLike('${m.id}')">❤️ ${likes.length>0? likes.length : ''} Like${likes.length===1?'':'s'}</button>
+        <button class="engage-btn" onclick="toggleMafunzoComments('${m.id}')">💬 ${comments.length>0? comments.length : ''} Comment${comments.length===1?'':'s'}</button>
+        <button class="engage-btn" onclick="shareMafunzo('${m.id}')">↗️ Share</button>
+      </div>
+      ${expanded ? `
+      <div class="comments-panel">
+        ${comments.length===0? '<p class="settings-note">No comments yet.</p>' : comments.map(c=>`
+          <div class="comment-row">
+            <b>${esc(c.author)}</b>
+            <span>${esc(c.text)}</span>
+          </div>`).join('')}
+        <div class="comment-input-row">
+          <input type="text" placeholder="Write a comment..." value="${esc(draft)}"
+                 oninput="mafunzoDrafts['${m.id}']=this.value"
+                 onkeydown="if(event.key==='Enter')submitMafunzoComment('${m.id}')">
+          <button class="btn-secondary" style="padding:8px 14px; font-size:12px;" onclick="submitMafunzoComment('${m.id}')">Post</button>
+        </div>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function toggleMafunzoLike(id){
+  if(!currentUser){ toast('Sign in to like a testimony'); return; }
+  const m = state.mafunzo.find(x=>x.id===id);
+  if(!m) return;
+  if(!m.likes) m.likes = [];
+  const idx = m.likes.indexOf(currentUser);
+  if(idx>=0){ m.likes.splice(idx,1); } else { m.likes.push(currentUser); }
+  renderMafunzo();
+  await saveList('mafunzo');
+}
+
+function toggleMafunzoComments(id){
+  if(mafunzoExpanded.has(id)) mafunzoExpanded.delete(id); else mafunzoExpanded.add(id);
+  renderMafunzo();
+}
+
+async function submitMafunzoComment(id){
+  const text = (mafunzoDrafts[id] || '').trim();
+  if(!text){ toast('Write something first'); return; }
+  const m = state.mafunzo.find(x=>x.id===id);
+  if(!m) return;
+  if(!m.comments) m.comments = [];
+  m.comments.push({ id: cryptoId(), author: currentUser, text, date: new Date().toISOString() });
+  delete mafunzoDrafts[id];
+  renderMafunzo();
+  await saveList('mafunzo');
+}
+
+function shareMafunzo(id){
+  const m = state.mafunzo.find(x=>x.id===id);
+  if(!m) return;
+  const shareText = `"${m.text}" — ${m.author}, USCF Mabibo Associates`;
+  if(navigator.share){
+    navigator.share({ title: m.title || 'What God Taught Me', text: shareText }).catch(()=>{});
+  } else if(navigator.clipboard){
+    navigator.clipboard.writeText(shareText).then(()=> toast('Copied to clipboard')).catch(()=> toast('Could not copy'));
+  } else {
+    toast('Sharing is not supported on this browser');
+  }
 }
 
 /* ---------- ADMIN: Pending approvals ---------- */
@@ -2496,13 +2578,14 @@ async function approveMember(id){
   const w = state.wanachama.find(x=>x.id===id);
   if(!w) return;
   try{
-    await db.collection(MEMBERS_COLLECTION).doc(id).update({ status:'approved' });
+    await db.collection(MEMBERS_COLLECTION).doc(id).set({ status:'approved' }, {merge:true});
     w.status = 'approved';
     renderAll();
     toast('Member approved');
     fireConfetti();
   }catch(e){
-    toast('Failed to approve member. Please try again.');
+    console.error('approveMember failed', e);
+    toast('Could not approve member: ' + (e && e.message ? e.message : 'please try again'));
   }
 }
 
@@ -2842,14 +2925,15 @@ async function saveOwnProfile(){
   };
   if(pendingProfilePhoto){ updates.photo = pendingProfilePhoto; }
   try{
-    await db.collection(MEMBERS_COLLECTION).doc(currentMemberId).update(updates);
+    await db.collection(MEMBERS_COLLECTION).doc(currentMemberId).set(updates, {merge:true});
     Object.assign(w, updates);
     pendingProfilePhoto = null;
     closeModal();
     renderAll();
     toast('Your profile has been updated');
   }catch(e){
-    toast('Failed to update profile. Please try again.');
+    console.error('saveOwnProfile failed', e);
+    toast('Could not update profile: ' + (e && e.message ? e.message : 'please try again'));
   }
 }
 
