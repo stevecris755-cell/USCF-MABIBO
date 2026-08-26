@@ -881,6 +881,12 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
         <button class="btn-primary" style="margin-top:12px;" onclick="downloadBackup()">Download Backup</button>
       </div>
 
+      <div class="settings-block" id="settings-csv-block" style="display:none;">
+        <h4>Export Members (CSV)</h4>
+        <p class="settings-note">Download the full member directory as a spreadsheet file — name, contact info, course, skills, join date and more. Opens directly in Excel or Google Sheets.</p>
+        <button class="btn-primary" style="margin-top:12px;" onclick="downloadMembersCSV()">Download Members CSV</button>
+      </div>
+
       <div class="settings-block">
         <h4>About this App</h4>
         <p class="settings-note">USCF Mabibo Associates Social Welfare — a shared home for announcements, events, members, contributions and fellowship. Data is stored securely in the cloud and shared with all approved members.</p>
@@ -1411,9 +1417,11 @@ function applyRoleVisibility(){
   const memberBlock = document.getElementById('settings-member-block');
   const adminBlock = document.getElementById('settings-admin-block');
   const backupBlock = document.getElementById('settings-backup-block');
+  const csvBlock = document.getElementById('settings-csv-block');
   if(memberBlock) memberBlock.style.display = currentMemberId ? 'block' : 'none';
   if(adminBlock) adminBlock.style.display = isAdmin ? 'block' : 'none';
   if(backupBlock) backupBlock.style.display = isAdmin ? 'block' : 'none';
+  if(csvBlock) csvBlock.style.display = isAdmin ? 'block' : 'none';
 }
 
 function buildNav(){
@@ -2745,6 +2753,34 @@ function downloadBackup(){
   toast('Backup downloaded');
 }
 
+function downloadMembersCSV(){
+  if(!isAdmin){ toast('Only an Admin can export members'); return; }
+  const approved = state.wanachama.filter(w=>w.status==='approved');
+  if(approved.length===0){ toast('No approved members to export'); return; }
+  const headers = ['Name','Email','Phone','Location','Course','University Start','University End','Job','Skills','Birthday','Role','Admin','Mentor','Joined','Last Login'];
+  const csvEscape = (v)=>{
+    const s = (v===undefined || v===null) ? '' : String(v);
+    return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+  };
+  const rows = approved.map(w=>[
+    w.name, w.email, w.phone, w.mahali, w.kozi, w.mwakaAnza, w.mwakaMaliza, w.kazi, w.ujuzi,
+    w.birthday, w.role, w.isSiteAdmin?'Yes':'No', w.mentor?'Yes':'No',
+    w.joinedAt ? fmtDate(w.joinedAt) : '', w.lastLogin ? fmtDate(w.lastLogin) : 'Never'
+  ].map(csvEscape).join(','));
+  const csv = [headers.join(','), ...rows].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `uscf-mabibo-members-${dateStr}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Members CSV downloaded');
+}
+
 async function changeMyPassword(){
   if(!currentMemberId){ toast('The master Admin account doesn\'t have a member password here'); return; }
   const w = state.wanachama.find(x=>x.id===currentMemberId);
@@ -2884,30 +2920,19 @@ async function submitPhotoUpload(){
   pendingPhotoUpload = null;
 }
 
-function handleProfilePhotoSelect(input){
+async function handleProfilePhotoSelect(input){
   const file = input.files[0];
   if(!file) return;
-  const reader = new FileReader();
-  reader.onload = (e)=>{
-    const img = new Image();
-    img.onload = ()=>{
-      const maxSize = 300;
-      let w = img.width, h = img.height;
-      if(w > h && w > maxSize){ h = h*(maxSize/w); w = maxSize; }
-      else if(h > maxSize){ w = w*(maxSize/h); h = maxSize; }
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-      pendingProfilePhoto = dataUrl;
-      const preview = document.getElementById('op-photo-preview');
-      const newImg = document.createElement('img');
-      newImg.className = 'avatar-photo'; newImg.id = 'op-photo-preview'; newImg.src = dataUrl;
-      preview.replaceWith(newImg);
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
+  try{
+    const dataUrl = await compressImageFile(file, 300, 0.75);
+    pendingProfilePhoto = dataUrl;
+    const preview = document.getElementById('op-photo-preview');
+    const newImg = document.createElement('img');
+    newImg.className = 'avatar-photo'; newImg.id = 'op-photo-preview'; newImg.src = dataUrl;
+    preview.replaceWith(newImg);
+  }catch(e){
+    toast('Could not read that image. Try another one.');
+  }
 }
 
 async function saveOwnProfile(){
