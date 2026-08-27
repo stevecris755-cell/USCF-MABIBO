@@ -97,11 +97,15 @@ nav.tabs{display:flex; flex-direction:column; gap:3px;}
 .tab-btn{
   display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:10px;
   border:none; background:transparent; color:var(--muted); font-size:14px; font-weight:500;
-  text-align:left; transition:background .15s ease, color .15s ease;
+  text-align:left; transition:background .15s ease, color .15s ease; position:relative;
 }
 .tab-btn svg{width:17px;height:17px; flex-shrink:0;}
 .tab-btn:hover{background:var(--bg-elev2); color:var(--cream);}
 .tab-btn.active{background:var(--gold-soft); color:var(--gold);}
+.nav-badge{
+  margin-left:auto; background:var(--warn); color:#fff; font-family:'IBM Plex Mono'; font-size:10px;
+  font-weight:700; padding:1px 7px; border-radius:20px; flex-shrink:0;
+}
 
 .user-chip{
   margin-top:auto; padding:10px 12px; border-radius:10px; background:var(--bg-elev2);
@@ -178,6 +182,8 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
   position:relative;
 }
 .card.has-cover{padding-top:0; overflow:hidden;}
+.dm-list-item{cursor:pointer;}
+.dm-list-item:hover{border-color:var(--gold);}
 .event-cover{width:calc(100% + 40px); margin:0 -20px 16px; height:150px; object-fit:cover; display:block;}
 .card .top-row{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
 .card h4{margin:0 0 4px; font-size:16px; font-weight:600;}
@@ -847,6 +853,29 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
       <div class="card-list" id="list-pending" style="margin-bottom:30px;"></div>
     </section>
 
+    <!-- MESSAGES (Private DMs) -->
+    <section class="page" id="page-messages">
+      <div class="page-head">
+        <div class="eyebrow">Private</div>
+        <h2>Messages</h2>
+        <p>One-on-one conversations with other members.</p>
+      </div>
+
+      <div id="dm-list-view">
+        <div class="card-list" id="dm-conversations-list"></div>
+      </div>
+
+      <div id="dm-thread-view" style="display:none;">
+        <button class="btn-secondary" style="margin-bottom:14px; padding:8px 14px; font-size:12px;" onclick="closeDMThread()">← Back to Messages</button>
+        <h3 id="dm-thread-name" style="margin:0 0 14px;">—</h3>
+        <div class="chat-wrap" id="dm-thread-messages"></div>
+        <div class="chat-input-row">
+          <input id="dm-input" type="text" placeholder="Type a private message..." onkeydown="if(event.key==='Enter')sendDM()">
+          <button class="send-btn" onclick="sendDM()">Send</button>
+        </div>
+      </div>
+    </section>
+
     <!-- SETTINGS -->
     <section class="page" id="page-settings">
       <div class="page-head">
@@ -986,6 +1015,7 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
 
   const FS_COLLECTION = 'uscf_mabibo_data';
   const MEMBERS_COLLECTION = 'members';
+  const DM_COLLECTION = 'dms';
 
   document.addEventListener('DOMContentLoaded', ()=>{
     const notConfigured = firebaseConfig.apiKey.includes('PASTE_YOUR');
@@ -1056,6 +1086,7 @@ const TABS = [
   {id:'picha', labelKey:'tab_picha', icon:'<rect x="2.5" y="3.5" width="13" height="11" rx="2"/><circle cx="6" cy="7.5" r="1.4"/><path d="M15 12l-3.5-3.5-3 3-2-2L3 13"/>'},
   {id:'michango', labelKey:'tab_michango', icon:'<circle cx="9" cy="9" r="7"/><path d="M9 5.5v7M11.5 7c0-1-1-1.7-2.5-1.7S6.5 6 6.5 7s.8 1.4 2.5 1.7 2.5.7 2.5 1.8-1 1.8-2.5 1.8S6 12 6 11"/>'},
   {id:'majadiliano', labelKey:'tab_majadiliano', icon:'<path d="M3 4h12v8H7l-4 3V4z"/>'},
+  {id:'messages', labelKey:'tab_messages', icon:'<path d="M3 4.5h12v8H8l-3 2.5v-2.5H3z"/><circle cx="6.5" cy="8.3" r=".7" fill="currentColor" stroke="none"/><circle cx="9" cy="8.3" r=".7" fill="currentColor" stroke="none"/><circle cx="11.5" cy="8.3" r=".7" fill="currentColor" stroke="none"/>', memberOnly:true},
   {id:'settings', labelKey:'tab_settings', icon:'<circle cx="9" cy="9" r="2.6"/><path d="M9 2.5v2M9 13.5v2M2.5 9h2M13.5 9h2M4.4 4.4l1.4 1.4M12.2 12.2l1.4 1.4M13.6 4.4l-1.4 1.4M5.8 12.2l-1.4 1.4"/>'},
   {id:'admin', labelKey:'tab_admin', icon:'<path d="M9 2l6 2.5v4c0 4-2.5 6.8-6 7.5-3.5-.7-6-3.5-6-7.5v-4L9 2z"/>', adminOnly:true},
 ];
@@ -1068,7 +1099,7 @@ const TRANSLATIONS = {
     tab_home:'Home', tab_about:'About Us', tab_matangazo:'Announcements', tab_matukio:'Events',
     tab_kalenda:'Calendar', tab_wanachama:'Members', tab_wajumbe:'Committee', tab_mafunzo:"What I've Learned",
     tab_maombi:'Prayer Requests', tab_fursa:'Opportunities', tab_mentors:'Mentors', tab_kura:'Polls',
-    tab_picha:'Photos', tab_michango:'Contributions', tab_majadiliano:'Discussion', tab_settings:'Settings', tab_admin:'Admin',
+    tab_picha:'Photos', tab_michango:'Contributions', tab_majadiliano:'Discussion', tab_messages:'Messages', tab_settings:'Settings', tab_admin:'Admin',
 
     home_welcome:'Welcome back,', home_sub:"We're spread across different places — this is where we connect.",
     home_stat_members:'Members', home_stat_events:'Upcoming Events', home_stat_announcements:'Announcements', home_stat_contrib:'Total Contributions',
@@ -1106,7 +1137,7 @@ const TRANSLATIONS = {
     tab_home:'Nyumbani', tab_about:'Kuhusu Sisi', tab_matangazo:'Matangazo', tab_matukio:'Matukio',
     tab_kalenda:'Kalenda', tab_wanachama:'Wanachama', tab_wajumbe:'Wajumbe', tab_mafunzo:'Nilichojifunza',
     tab_maombi:'Maombi', tab_fursa:'Fursa', tab_mentors:'Wakufunzi', tab_kura:'Kura',
-    tab_picha:'Picha', tab_michango:'Michango', tab_majadiliano:'Majadiliano', tab_settings:'Mipangilio', tab_admin:'Admin',
+    tab_picha:'Picha', tab_michango:'Michango', tab_majadiliano:'Majadiliano', tab_messages:'Ujumbe Binafsi', tab_settings:'Mipangilio', tab_admin:'Admin',
 
     home_welcome:'Karibu tena,', home_sub:'Tumetawanyika sehemu mbalimbali — hapa ndipo tunapoungana.',
     home_stat_members:'Wanachama', home_stat_events:'Matukio Yajayo', home_stat_announcements:'Matangazo', home_stat_contrib:'Michango Jumla',
@@ -1164,7 +1195,8 @@ const LOGO_DATA = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBA
 let currentUser = '';
 let currentMemberId = null;
 let isAdmin = false;
-let state = { matangazo:[], matukio:[], wanachama:[], michango:[], majadiliano:[], kura:[], picha:[], wajumbe:[], mafunzo:[], maombi:[], fursa:[], settings:{} };
+let state = { matangazo:[], matukio:[], wanachama:[], michango:[], majadiliano:[], kura:[], picha:[], wajumbe:[], mafunzo:[], maombi:[], fursa:[], settings:{}, conversations:[] };
+let activeConversationId = null;
 const KEYS = { matangazo:'uscf:matangazo', matukio:'uscf:matukio', michango:'uscf:michango', majadiliano:'uscf:majadiliano', kura:'uscf:kura', picha:'uscf:picha', wajumbe:'uscf:wajumbe', mafunzo:'uscf:mafunzo', maombi:'uscf:maombi', fursa:'uscf:fursa', settings:'uscf:settings' };
 let memberRole = ''; // '', 'treasurer', 'secretary'
 
@@ -1386,6 +1418,16 @@ function startRealtimeSync(){
       renderAll();
     }, (err)=>{ console.error('Realtime listener error for members', err); });
   }
+  if(currentMemberId && !sectionUnsubs.dms){
+    sectionUnsubs.dms = db.collection(DM_COLLECTION)
+      .where('participants', 'array-contains', currentMemberId)
+      .onSnapshot((snap)=>{
+        state.conversations = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+        renderDMList();
+        updateDMBadge();
+        if(activeConversationId) renderDMThread(activeConversationId);
+      }, (err)=>{ console.error('Realtime listener error for DMs', err); });
+  }
 }
 
 const ENCOURAGEMENT_MESSAGES = [
@@ -1427,11 +1469,12 @@ function applyRoleVisibility(){
 function buildNav(){
   const nav = document.getElementById('nav-tabs');
   nav.innerHTML='';
-  TABS.filter(tab=> !tab.adminOnly || isAdmin).forEach(tab=>{
+  TABS.filter(tab=> (!tab.adminOnly || isAdmin) && (!tab.memberOnly || currentMemberId)).forEach(tab=>{
     const b1 = document.createElement('button');
     b1.className='tab-btn'+(tab.id==='home'?' active':'');
     b1.id='tabbtn-'+tab.id;
-    b1.innerHTML=`<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${tab.icon}</svg><span>${t(tab.labelKey)}</span>`;
+    const badge = tab.id==='messages' ? `<span class="nav-badge" id="messages-nav-badge" style="display:none;">0</span>` : '';
+    b1.innerHTML=`<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${tab.icon}</svg><span>${t(tab.labelKey)}</span>${badge}`;
     b1.onclick=()=>showPage(tab.id);
     nav.appendChild(b1);
   });
@@ -1546,6 +1589,7 @@ function renderAll(){
   renderMatangazo(); renderMatukio(); renderWanachama(); renderMichango(); renderChat(); renderHome();
   renderKalenda(); renderKura(); renderPicha(); renderWajumbe(); renderMafunzo(); renderPending();
   renderAdminAnalytics(); renderMaombi(); renderFursa(); renderMentors(); applyRoleVisibility();
+  renderDMList(); updateDMBadge();
 }
 
 function fmtDate(iso){
@@ -1752,6 +1796,7 @@ function renderWanachama(){
         ${w.kazi? `<div class="profile-field"><b>Job</b>${esc(w.kazi)}</div>`:''}
       </div>
       ${skills.length? `<div style="margin-top:8px;">${skills.map(s=>`<span class="skill-chip">${esc(s)}</span>`).join('')}</div>` : ''}
+      ${(currentMemberId && w.id!==currentMemberId) ? `<button class="btn-secondary" style="margin-top:12px; padding:7px 14px; font-size:12px;" onclick="openConversationWith('${w.id}','${esc(w.name).replace(/'/g,"\\'")}')">✉️ Message Privately</button>` : ''}
     </div>`;
   }).join('');
 }
@@ -2274,6 +2319,146 @@ function viewChatImage(id){
   modal.innerHTML = `<img src="${m.image}" style="width:100%; border-radius:10px;">
     <div class="modal-actions"><button class="btn-secondary" onclick="closeModal()">Close</button></div>`;
   document.getElementById('overlay').classList.add('active');
+}
+
+/* ---------- PRIVATE MESSAGES (DMs) ---------- */
+function getConversationId(uidA, uidB){
+  return [uidA, uidB].sort().join('_');
+}
+
+async function openConversationWith(otherId, otherName){
+  if(!currentMemberId){ toast('Sign in to send private messages'); return; }
+  const convoId = getConversationId(currentMemberId, otherId);
+  let convo = state.conversations.find(c=>c.id===convoId);
+  if(!convo){
+    const otherMember = state.wanachama.find(w=>w.id===otherId);
+    convo = {
+      id: convoId,
+      participants: [currentMemberId, otherId],
+      participantNames: { [currentMemberId]: currentUser, [otherId]: otherName || (otherMember?otherMember.name:'Member') },
+      messages: []
+    };
+    try{
+      await db.collection(DM_COLLECTION).doc(convoId).set(convo, {merge:true});
+    }catch(e){
+      console.error('Failed to start conversation', e);
+      toast('Could not start conversation: ' + (e && e.message ? e.message : 'please try again'));
+      return;
+    }
+    state.conversations.push(convo);
+  }
+  showPage('messages');
+  openDMThread(convoId);
+}
+
+function renderDMList(){
+  const el = document.getElementById('dm-conversations-list');
+  if(!el) return;
+  if(!currentMemberId){ el.innerHTML = emptyState('Sign in as a member to use private messages.', '✉️'); return; }
+  if(state.conversations.length===0){ el.innerHTML = emptyState("No conversations yet. Visit a member's profile and tap \"Message Privately\".", '✉️'); return; }
+  const sorted = [...state.conversations].sort((a,b)=>{
+    const aLast = a.messages && a.messages.length ? new Date(a.messages[a.messages.length-1].date) : new Date(0);
+    const bLast = b.messages && b.messages.length ? new Date(b.messages[b.messages.length-1].date) : new Date(0);
+    return bLast - aLast;
+  });
+  el.innerHTML = sorted.map(c=>{
+    const otherId = c.participants.find(p=>p!==currentMemberId);
+    const otherName = (c.participantNames && c.participantNames[otherId]) || 'Member';
+    const msgs = c.messages || [];
+    const lastMsg = msgs.length ? msgs[msgs.length-1] : null;
+    const unreadCount = msgs.filter(m=> m.senderId!==currentMemberId && !(m.readBy||[]).includes(currentMemberId)).length;
+    const snippet = lastMsg ? (lastMsg.type==='text'? lastMsg.text : '...') : 'No messages yet';
+    return `
+    <div class="card dm-list-item" onclick="openDMThread('${c.id}')">
+      <div class="top-row">
+        <div><h4>${esc(otherName)}</h4><div class="meta">${esc((snippet||'').slice(0,50))}${lastMsg? ' · '+fmtDate(lastMsg.date):''}</div></div>
+        ${unreadCount>0? `<span class="nav-badge">${unreadCount}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openDMThread(convoId){
+  activeConversationId = convoId;
+  document.getElementById('dm-list-view').style.display = 'none';
+  document.getElementById('dm-thread-view').style.display = 'block';
+  const convo = state.conversations.find(c=>c.id===convoId);
+  if(convo){
+    const otherId = convo.participants.find(p=>p!==currentMemberId);
+    document.getElementById('dm-thread-name').textContent = (convo.participantNames && convo.participantNames[otherId]) || 'Member';
+  }
+  markConversationRead(convoId);
+  renderDMThread(convoId);
+}
+
+function closeDMThread(){
+  activeConversationId = null;
+  document.getElementById('dm-thread-view').style.display = 'none';
+  document.getElementById('dm-list-view').style.display = 'block';
+  renderDMList();
+}
+
+function renderDMThread(convoId){
+  if(activeConversationId !== convoId) return;
+  const convo = state.conversations.find(c=>c.id===convoId);
+  const wrap = document.getElementById('dm-thread-messages');
+  if(!wrap) return;
+  if(!convo || !convo.messages || convo.messages.length===0){
+    wrap.innerHTML = emptyState('No messages yet. Say hello!', '👋');
+    return;
+  }
+  const wasNearBottom = (wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight) < 80;
+  wrap.innerHTML = convo.messages.map(m=>{
+    const mine = m.senderId===currentMemberId;
+    return `<div class="msg ${mine?'mine':'theirs'}">${esc(m.text)}</div>`;
+  }).join('');
+  if(wasNearBottom) wrap.scrollTop = wrap.scrollHeight;
+}
+
+async function sendDM(){
+  if(!activeConversationId){ return; }
+  const input = document.getElementById('dm-input');
+  const text = input.value.trim();
+  if(!text) return;
+  const convo = state.conversations.find(c=>c.id===activeConversationId);
+  if(!convo) return;
+  const msg = { id: cryptoId(), senderId: currentMemberId, text, date: new Date().toISOString(), readBy:[currentMemberId] };
+  if(!convo.messages) convo.messages = [];
+  convo.messages.push(msg);
+  input.value = '';
+  renderDMThread(activeConversationId);
+  try{
+    await db.collection(DM_COLLECTION).doc(activeConversationId).set({ messages: convo.messages }, {merge:true});
+  }catch(e){
+    console.error('Failed to send message', e);
+    toast('Could not send message: ' + (e && e.message ? e.message : 'please try again'));
+  }
+}
+
+async function markConversationRead(convoId){
+  const convo = state.conversations.find(c=>c.id===convoId);
+  if(!convo || !convo.messages || !currentMemberId) return;
+  let changed = false;
+  convo.messages.forEach(m=>{
+    if(!m.readBy) m.readBy = [];
+    if(!m.readBy.includes(currentMemberId)){ m.readBy.push(currentMemberId); changed = true; }
+  });
+  if(!changed) return;
+  updateDMBadge();
+  try{
+    await db.collection(DM_COLLECTION).doc(convoId).set({ messages: convo.messages }, {merge:true});
+  }catch(e){ console.error('Failed to mark conversation read', e); }
+}
+
+function updateDMBadge(){
+  const badge = document.getElementById('messages-nav-badge');
+  if(!badge) return;
+  const totalUnread = state.conversations.reduce((sum,c)=>{
+    const msgs = c.messages || [];
+    return sum + msgs.filter(m=> m.senderId!==currentMemberId && !(m.readBy||[]).includes(currentMemberId)).length;
+  }, 0);
+  if(totalUnread>0){ badge.textContent = totalUnread; badge.style.display='inline-block'; }
+  else{ badge.style.display='none'; }
 }
 
 /* ---------- KALENDA ---------- */
