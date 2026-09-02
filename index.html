@@ -5,39 +5,58 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>USCF Mabibo Associates Social Welfare</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#11172A">
+<meta name="theme-color" content="#17130F">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="USCF Mabibo SW">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 :root{
-  --bg:#11172A;
-  --bg-elev:#1A2340;
-  --bg-elev2:#212C4E;
-  --line: rgba(242,236,221,0.10);
-  --gold:#C9A24B;
-  --gold-soft: rgba(201,162,75,0.16);
+  --bg:#17130F;
+  --bg-elev:#221C17;
+  --bg-elev2:#2B2420;
+  --line: rgba(245,237,224,0.10);
+  --gold:#CBA046;
+  --gold-soft: rgba(203,160,70,0.16);
+  --terracotta:#C1573A;
+  --terracotta-soft: rgba(193,87,58,0.16);
   --sage:#7FA083;
-  --cream:#F2ECDD;
-  --muted:#8C93B0;
+  --cream:#F5EDE0;
+  --muted:#A69A8C;
   --warn:#D2694F;
-  --radius: 14px;
+  --radius: 16px;
+  --shadow: 0 8px 24px rgba(0,0,0,0.28);
+}
+[data-theme="light"]{
+  --bg:#FAF6EF;
+  --bg-elev:#FFFFFF;
+  --bg-elev2:#F1E9DA;
+  --line: rgba(30,22,15,0.10);
+  --gold:#B4863A;
+  --gold-soft: rgba(180,134,58,0.14);
+  --terracotta:#B94F33;
+  --terracotta-soft: rgba(185,79,51,0.12);
+  --sage:#5E8564;
+  --cream:#241C15;
+  --muted:#79695A;
+  --warn:#B94F33;
+  --shadow: 0 8px 24px rgba(60,40,20,0.10);
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body{
   background:
-    radial-gradient(circle at 15% 0%, rgba(201,162,75,0.08), transparent 45%),
+    radial-gradient(circle at 15% 0%, rgba(193,87,58,0.10), transparent 45%),
     radial-gradient(circle at 100% 100%, rgba(127,160,131,0.08), transparent 40%),
     var(--bg);
   color:var(--cream);
-  font-family:'Inter', sans-serif;
+  font-family:'Plus Jakarta Sans', sans-serif;
   min-height:100vh;
   -webkit-font-smoothing:antialiased;
+  transition:background .25s ease, color .25s ease;
 }
 h1,h2,h3,.display{font-family:'Fraunces', serif;}
 .mono{font-family:'IBM Plex Mono', monospace;}
@@ -69,15 +88,15 @@ button{font-family:inherit;cursor:pointer;}
   width:100%; padding:12px 14px; border-radius:10px; border:1px solid var(--line);
   background:var(--bg); color:var(--cream); font-size:15px; margin-bottom:12px;
 }
-.login-card input:focus{outline:2px solid var(--gold); outline-offset:1px;}
+.login-card input:focus{outline:2px solid var(--terracotta); outline-offset:1px;}
 .btn-primary{
   width:100%; padding:12px 14px; border-radius:10px; border:none;
-  background:var(--gold); color:#1a1508; font-weight:600; font-size:14.5px;
+  background:var(--terracotta); color:#FBF2EC; font-weight:600; font-size:14.5px;
   transition:transform .15s ease, filter .15s ease;
 }
-.btn-primary:hover{filter:brightness(1.08); transform:translateY(-1px);}
+.btn-primary:hover{filter:brightness(1.1); transform:translateY(-1px);}
 .login-note{font-size:11.5px; color:var(--muted); margin-top:14px; line-height:1.5;}
-.link-btn{background:none; border:none; color:var(--gold); text-decoration:underline; font-size:11.5px; padding:0; cursor:pointer;}
+.link-btn{background:none; border:none; color:var(--terracotta); text-decoration:underline; font-size:11.5px; padding:0; cursor:pointer;}
 
 /* ---------- App shell ---------- */
 #app{ display:none; min-height:100vh; }
@@ -140,8 +159,9 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
 
 /* ---------- Home / hero ---------- */
 .hero{
-  position:relative; border:1px solid var(--line); border-radius:20px; background:var(--bg-elev);
-  padding:38px 32px; margin-bottom:28px; overflow:hidden;
+  position:relative; border:1px solid var(--line); border-radius:var(--radius); background:var(--bg-elev);
+  padding:38px 32px; margin-bottom:28px; overflow:hidden; box-shadow:var(--shadow);
+  border-top:3px solid var(--terracotta);
 }
 .hero-photo-wrap{
   position:absolute; right:-6px; top:-6px; bottom:-6px; width:280px; overflow:hidden;
@@ -161,7 +181,7 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
 .home-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px;}
 @media (max-width:900px){ .home-grid{grid-template-columns:1fr 1fr;} }
 @media (max-width:720px){ .home-grid{grid-template-columns:1fr;} }
-.mini-card{border:1px solid var(--line); border-radius:14px; padding:18px 20px; background:var(--bg-elev);}
+.mini-card{border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; background:var(--bg-elev); box-shadow:var(--shadow);}
 .mini-card h4{margin:0 0 10px; font-size:13px; text-transform:uppercase; letter-spacing:0.05em; color:var(--gold); font-family:'IBM Plex Mono'; font-weight:500;}
 .mini-card .empty{color:var(--muted); font-size:13.5px; font-style:italic;}
 .mini-card .item{font-size:13.5px; padding:7px 0; border-bottom:1px solid var(--line); color:var(--cream);}
@@ -171,14 +191,15 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
 /* ---------- Lists / cards ---------- */
 .toolbar{display:flex; justify-content:flex-end; margin-bottom:18px;}
 .btn-add{
-  background:var(--gold-soft); color:var(--gold); border:1px solid var(--gold); border-radius:10px;
+  background:var(--terracotta-soft); color:var(--terracotta); border:1px solid var(--terracotta); border-radius:10px;
   padding:9px 16px; font-size:13.5px; font-weight:600; display:flex; align-items:center; gap:7px;
 }
-.btn-add:hover{background:var(--gold); color:#1a1508;}
+.btn-add:hover{background:var(--terracotta); color:#FBF2EC;}
 
 .card-list{display:flex; flex-direction:column; gap:12px;}
 .card{
-  border:1px solid var(--line); background:var(--bg-elev); border-radius:14px; padding:18px 20px;
+  border:1px solid var(--line); background:var(--bg-elev); border-radius:var(--radius); padding:18px 20px;
+  box-shadow:var(--shadow);
   position:relative;
 }
 .card.has-cover{padding-top:0; overflow:hidden;}
@@ -292,7 +313,7 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
 .chat-input-row{display:flex; gap:10px; align-items:center;}
 .chat-input-row input{flex:1;}
 .send-btn{
-  background:var(--gold); color:#1a1508; border:none; border-radius:10px; padding:0 18px; font-weight:600; font-size:13.5px; height:44px;
+  background:var(--terracotta); color:#FBF2EC; border:none; border-radius:10px; padding:0 18px; font-weight:600; font-size:13.5px; height:44px;
 }
 .mic-btn{
   width:44px; height:44px; flex-shrink:0; border-radius:10px; border:1px solid var(--line); background:var(--bg-elev); color:var(--muted);
@@ -439,6 +460,8 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
 .lang-toggle{display:flex; gap:6px;}
 .lang-btn{background:var(--bg); border:1px solid var(--line); color:var(--muted); border-radius:8px; padding:8px 14px; font-size:12.5px; font-weight:600;}
 .lang-btn.active{border-color:var(--gold); color:var(--gold); background:var(--gold-soft);}
+.theme-toggle-btn{padding:8px 12px;}
+.theme-opt-btn.active{border-color:var(--terracotta); color:var(--terracotta); background:var(--terracotta-soft);}
 .login-lang-toggle{position:absolute; top:20px; right:20px; z-index:2;}
 .login-card{position:relative;}
 .login-tab-btn{flex:1; padding:8px 6px; border:none; background:transparent; color:var(--muted); font-size:12.5px; font-weight:600; border-radius:8px; font-family:inherit;}
@@ -523,6 +546,7 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
     <div class="lang-toggle login-lang-toggle">
       <button class="lang-btn" data-lang="en" onclick="applyLanguage('en')">EN</button>
       <button class="lang-btn" data-lang="sw" onclick="applyLanguage('sw')">SW</button>
+      <button class="lang-btn theme-toggle-btn" onclick="toggleTheme()" title="Toggle light/dark"><span id="theme-icon-login">🌙</span></button>
     </div>
     <div class="login-mark"><img id="logo-img-login" src="" alt="USCF Mabibo Associates"></div>
     <div class="eyebrow">Social Welfare</div>
@@ -892,6 +916,14 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
         </div>
       </div>
 
+      <div class="settings-block">
+        <h4>Appearance</h4>
+        <div class="lang-toggle">
+          <button class="lang-btn theme-opt-btn" data-theme="dark" onclick="setTheme('dark')">🌙 Dark</button>
+          <button class="lang-btn theme-opt-btn" data-theme="light" onclick="setTheme('light')">☀️ Light</button>
+        </div>
+      </div>
+
       <div class="settings-block" id="settings-member-block">
         <h4>Change My Password</h4>
         <div class="field"><label>Current password</label><input id="set-current-pass" type="password"></div>
@@ -1093,6 +1125,23 @@ const TABS = [
 
 /* ---------- LANGUAGE (English / Swahili) ---------- */
 let currentLang = localStorage.getItem('uscf_lang') || 'en';
+let currentTheme = localStorage.getItem('uscf_theme') || 'dark';
+
+function setTheme(theme){
+  currentTheme = theme;
+  localStorage.setItem('uscf_theme', theme);
+  if(theme==='light'){ document.documentElement.setAttribute('data-theme','light'); }
+  else{ document.documentElement.removeAttribute('data-theme'); }
+  const loginIcon = document.getElementById('theme-icon-login');
+  if(loginIcon) loginIcon.textContent = theme==='light' ? '☀️' : '🌙';
+  document.querySelectorAll('.theme-opt-btn').forEach(b=> b.classList.toggle('active', b.dataset.theme===theme));
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if(metaTheme) metaTheme.setAttribute('content', theme==='light' ? '#FAF6EF' : '#17130F');
+}
+function toggleTheme(){
+  setTheme(currentTheme==='light' ? 'dark' : 'light');
+}
+setTheme(currentTheme);
 
 const TRANSLATIONS = {
   en: {
