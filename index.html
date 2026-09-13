@@ -133,17 +133,15 @@ nav.tabs{display:flex; flex-direction:column; gap:3px;}
 .user-dot{width:8px;height:8px;border-radius:50%;background:var(--sage); flex-shrink:0;}
 .sidebar-filler{
   flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;
-  gap:14px; padding:10px 8px; min-height:0;
-}
-.sidebar-filler img{
-  width:100%; max-height:180px; object-fit:cover; border-radius:14px; opacity:0.92;
-  box-shadow:0 10px 26px rgba(0,0,0,0.35);
+  gap:14px; padding:20px 16px; min-height:0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  margin:8px 0;
 }
 .sidebar-filler p{
-  font-family:'Fraunces'; font-style:italic; font-size:12px; color:var(--muted);
-  text-align:center; line-height:1.5; margin:0; padding:0 4px;
+  font-family:'Fraunces'; font-style:italic; font-size:12.5px; color:var(--muted);
+  text-align:center; line-height:1.6; margin:0; padding:0 4px;
 }
-@media (max-width:860px){ .sidebar-filler{ min-height:140px; } }
+.sidebar-filler p::before{content:'"'; color:var(--terracotta); font-size:20px; display:block; margin-bottom:4px; font-family:'Fraunces';}
+@media (max-width:860px){ .sidebar-filler{ min-height:100px; } }
 
 /* mobile tabs */
 
@@ -177,6 +175,23 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
 .stat-row{display:flex; gap:34px; margin-top:22px; flex-wrap:wrap;}
 .stat b{display:block; font-size:24px; font-family:'Fraunces'; font-weight:600;}
 .stat span{font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; font-family:'IBM Plex Mono';}
+
+.quick-access-grid{
+  display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin-bottom:28px;
+}
+@media (max-width:600px){ .quick-access-grid{grid-template-columns:repeat(4, 1fr); gap:8px;} }
+.quick-tile{
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+  padding:14px 6px; border-radius:14px; border:1px solid var(--line); background:var(--bg-elev);
+  box-shadow:var(--shadow); position:relative; text-align:center;
+}
+.quick-tile:hover{border-color:var(--terracotta);}
+.quick-tile svg{width:19px; height:19px; color:var(--terracotta);}
+.quick-tile span{font-size:10px; color:var(--muted); font-weight:500; line-height:1.2;}
+.quick-tile .quick-badge{
+  position:absolute; top:4px; right:8px; background:var(--warn); color:#fff; font-family:'IBM Plex Mono';
+  font-size:9px; font-weight:700; padding:1px 5px; border-radius:20px;
+}
 
 .home-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px;}
 @media (max-width:900px){ .home-grid{grid-template-columns:1fr 1fr;} }
@@ -502,13 +517,26 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
   align-items:center; justify-content:center; padding:24px;
 }
 .loading-overlay.active{display:flex;}
-.skeleton-wrap{width:100%; max-width:480px; display:flex; flex-direction:column; gap:14px;}
+.skeleton-wrap{width:100%; max-width:420px; display:flex; flex-direction:column; gap:14px;}
+.skeleton-photo{
+  height:170px; border-radius:16px; overflow:hidden; position:relative;
+  background:linear-gradient(100deg, var(--bg-elev) 30%, var(--bg-elev2) 50%, var(--bg-elev) 70%);
+  background-size:200% 100%; animation:shimmer 1.4s ease-in-out infinite;
+}
+.skeleton-photo img{
+  width:100%; height:100%; object-fit:cover; display:block;
+  opacity:0; animation:photoFadeIn 1.6s ease forwards; animation-delay:.3s;
+}
+.skeleton-photo-caption{
+  text-align:center; font-family:'Fraunces'; font-style:italic; font-size:12.5px; color:var(--muted); margin:2px 0 0;
+}
 .skeleton-card{
-  height:90px; border-radius:14px; border:1px solid var(--line);
+  height:60px; border-radius:14px; border:1px solid var(--line);
   background:linear-gradient(100deg, var(--bg-elev) 30%, var(--bg-elev2) 50%, var(--bg-elev) 70%);
   background-size:200% 100%; animation:shimmer 1.4s ease-in-out infinite;
 }
 @keyframes shimmer{ 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
+@keyframes photoFadeIn{ from{opacity:0;} to{opacity:0.9;} }
 
 /* ---------- Confetti ---------- */
 .confetti-container{position:fixed; inset:0; pointer-events:none; z-index:200; overflow:hidden;}
@@ -607,7 +635,8 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
   <div class="menu-backdrop" id="menu-backdrop" onclick="toggleMenu(false)"></div>
   <div class="loading-overlay" id="loading-overlay">
     <div class="skeleton-wrap">
-      <div class="skeleton-card"></div>
+      <div class="skeleton-photo"><img id="loading-skeleton-photo" src="" alt="USCF Mabibo Associates"></div>
+      <p class="skeleton-photo-caption" id="loading-skeleton-verse"></p>
       <div class="skeleton-card"></div>
       <div class="skeleton-card"></div>
     </div>
@@ -620,7 +649,6 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
     </div>
     <nav class="tabs" id="nav-tabs"></nav>
     <div class="sidebar-filler">
-      <img id="sidebar-filler-photo" src="" alt="USCF Mabibo Associates">
       <p id="sidebar-filler-verse">"Let us not neglect meeting together, but encourage one another." — Hebrews 10:25</p>
     </div>
     <div class="user-chip" onclick="openOwnProfile()"><span class="user-dot"></span><span id="user-chip-name">—</span></div>
@@ -641,6 +669,9 @@ main{flex:1; padding:36px 40px; max-width:920px; width:100%; margin:0 auto;}
           <div class="stat"><b id="stat-michango">TSh 0</b><span data-i18n="home_stat_contrib">Total Contributions</span></div>
         </div>
       </div>
+
+      <div class="quick-access-grid" id="quick-access-grid"></div>
+
       <div class="home-grid">
         <div class="mini-card">
           <h4 data-i18n="home_latest_announcement">Latest Announcement</h4>
@@ -1234,6 +1265,7 @@ function applyLanguage(lang){
   });
   buildNav();
   applyRoleVisibility();
+  renderQuickAccess();
   const langBtns = document.querySelectorAll('.lang-btn');
   langBtns.forEach(b=> b.classList.toggle('active', b.dataset.lang===lang));
 }
@@ -1264,8 +1296,6 @@ const logoImgSidebar = document.getElementById('logo-img-sidebar');
 if(logoImgSidebar) logoImgSidebar.src = LOGO_DATA;
 applyLanguage(currentLang);
 
-const sidebarFillerPhoto = document.getElementById('sidebar-filler-photo');
-if(sidebarFillerPhoto) sidebarFillerPhoto.src = HERO_PHOTO_DATA;
 const SIDEBAR_VERSES = [
   '"Let us not neglect meeting together, but encourage one another." — Hebrews 10:25',
   '"I can do all things through him who strengthens me." — Philippians 4:13',
@@ -1434,6 +1464,10 @@ async function enterApp(){
   document.getElementById('user-chip-name').textContent = currentUser + (isAdmin? ' (Admin)' : '');
   document.getElementById('home-greet-name').textContent = currentUser;
   buildNav();
+  const skelPhoto = document.getElementById('loading-skeleton-photo');
+  if(skelPhoto) skelPhoto.src = HERO_PHOTO_DATA;
+  const skelVerse = document.getElementById('loading-skeleton-verse');
+  if(skelVerse) skelVerse.textContent = SIDEBAR_VERSES[Math.floor(Math.random()*SIDEBAR_VERSES.length)];
   document.getElementById('loading-overlay').classList.add('active');
   await loadAll();
   document.getElementById('loading-overlay').classList.remove('active');
@@ -1650,6 +1684,7 @@ function fmtDate(iso){
 
 /* ---------- HOME ---------- */
 function renderHome(){
+  renderQuickAccess();
   document.getElementById('stat-wanachama').textContent = state.wanachama.filter(w=>w.status==='approved').length;
   const upcoming = state.matukio.filter(e=>!e.date || new Date(e.date) >= new Date(new Date().toDateString())).length;
   document.getElementById('stat-matukio').textContent = upcoming;
@@ -1697,6 +1732,24 @@ function getUpcomingBirthdays(withinDays){
     if(daysAway <= withinDays){ results.push({ name: w.name, daysAway }); }
   });
   return results.sort((a,b)=> a.daysAway - b.daysAway);
+}
+
+function renderQuickAccess(){
+  const grid = document.getElementById('quick-access-grid');
+  if(!grid) return;
+  const tiles = TABS.filter(tab=> tab.id!=='home' && (!tab.adminOnly || isAdmin) && (!tab.memberOnly || currentMemberId));
+  const unreadDM = state.conversations ? state.conversations.reduce((sum,c)=>{
+    const msgs = c.messages || [];
+    return sum + msgs.filter(m=> m.senderId!==currentMemberId && !(m.readBy||[]).includes(currentMemberId)).length;
+  }, 0) : 0;
+  grid.innerHTML = tiles.map(tab=>{
+    const badge = (tab.id==='messages' && unreadDM>0) ? `<span class="quick-badge">${unreadDM}</span>` : '';
+    return `<button class="quick-tile" onclick="showPage('${tab.id}')">
+      ${badge}
+      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${tab.icon}</svg>
+      <span>${t(tab.labelKey)}</span>
+    </button>`;
+  }).join('');
 }
 
 function renderWeb(){
